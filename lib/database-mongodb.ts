@@ -5,18 +5,26 @@ import bcrypt from "bcryptjs"
 
 // Connect to database
 export async function initializeDB() {
+  console.log("[v0] 🚀 Khởi tạo database...")
   await connectDB()
+  console.log("[v0] ✅ Database đã sẵn sàng!")
 }
 
 // Employee operations
 export async function findUserByEmail(email: string): Promise<IEmployee | null> {
+  console.log("[v0] 🔍 Tìm user theo email:", email)
   await connectDB()
-  return await Employee.findOne({ email: email.toLowerCase(), isActive: true }).exec()
+  const user = await Employee.findOne({ email: email.toLowerCase(), isActive: true }).exec()
+  console.log("[v0] 📊 Kết quả tìm user:", user ? "Tìm thấy" : "Không tìm thấy")
+  return user
 }
 
 export async function findUserById(id: string): Promise<IEmployee | null> {
+  console.log("[v0] 🔍 Tìm user theo ID:", id)
   await connectDB()
-  return await Employee.findById(id).exec()
+  const user = await Employee.findById(id).exec()
+  console.log("[v0] 📊 Kết quả tìm user:", user ? "Tìm thấy" : "Không tìm thấy")
+  return user
 }
 
 export async function createUser(userData: {
@@ -27,9 +35,11 @@ export async function createUser(userData: {
   role?: "employee" | "manager"
   phone?: string
 }): Promise<IEmployee> {
+  console.log("[v0] ➕ Tạo user mới:", userData.name, userData.email)
   await connectDB()
 
   // Hash password
+  console.log("[v0] 🔐 Đang hash password...")
   const hashedPassword = await bcrypt.hash(userData.password, 10)
 
   const newEmployee = new Employee({
@@ -38,7 +48,9 @@ export async function createUser(userData: {
     email: userData.email.toLowerCase(),
   })
 
-  return await newEmployee.save()
+  const savedEmployee = await newEmployee.save()
+  console.log("[v0] ✅ Tạo user thành công với ID:", savedEmployee._id)
+  return savedEmployee
 }
 
 export async function updateUser(id: string, updates: Partial<IEmployee>): Promise<IEmployee | null> {
@@ -101,15 +113,21 @@ export async function createTimesheet(timesheetData: {
   totalHours?: number
   salary?: number
 }): Promise<ITimesheet> {
+  console.log("[v0] ⏰ Tạo timesheet mới cho:", timesheetData.employeeName, "ngày:", timesheetData.date)
   await connectDB()
 
   const timesheet = new Timesheet(timesheetData)
-  return await timesheet.save()
+  const savedTimesheet = await timesheet.save()
+  console.log("[v0] ✅ Tạo timesheet thành công với ID:", savedTimesheet._id)
+  return savedTimesheet
 }
 
 export async function updateTimesheet(id: string, updates: Partial<ITimesheet>): Promise<ITimesheet | null> {
+  console.log("[v0] 📝 Cập nhật timesheet ID:", id, "với dữ liệu:", updates)
   await connectDB()
-  return await Timesheet.findByIdAndUpdate(id, updates, { new: true }).exec()
+  const updatedTimesheet = await Timesheet.findByIdAndUpdate(id, updates, { new: true }).exec()
+  console.log("[v0] 📊 Kết quả cập nhật timesheet:", updatedTimesheet ? "Thành công" : "Thất bại")
+  return updatedTimesheet
 }
 
 export async function getTimesheetsByEmployee(
@@ -117,6 +135,7 @@ export async function getTimesheetsByEmployee(
   startDate?: Date,
   endDate?: Date,
 ): Promise<ITimesheet[]> {
+  console.log("[v0] 📋 Lấy timesheets cho employee:", employeeId, "từ:", startDate, "đến:", endDate)
   await connectDB()
 
   const query: any = { employeeId }
@@ -127,7 +146,9 @@ export async function getTimesheetsByEmployee(
     if (endDate) query.date.$lte = endDate
   }
 
-  return await Timesheet.find(query).sort({ date: -1 }).exec()
+  const timesheets = await Timesheet.find(query).sort({ date: -1 }).exec()
+  console.log("[v0] 📊 Tìm thấy", timesheets.length, "timesheets")
+  return timesheets
 }
 
 export async function getAllTimesheets(): Promise<ITimesheet[]> {
@@ -136,6 +157,7 @@ export async function getAllTimesheets(): Promise<ITimesheet[]> {
 }
 
 export async function getTodayTimesheet(employeeId: string): Promise<ITimesheet | null> {
+  console.log("[v0] 📅 Lấy timesheet hôm nay cho employee:", employeeId)
   await connectDB()
 
   const today = new Date()
@@ -144,13 +166,16 @@ export async function getTodayTimesheet(employeeId: string): Promise<ITimesheet 
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  return await Timesheet.findOne({
+  const timesheet = await Timesheet.findOne({
     employeeId,
     date: {
       $gte: today,
       $lt: tomorrow,
     },
   }).exec()
+
+  console.log("[v0] 📊 Timesheet hôm nay:", timesheet ? "Có" : "Chưa có")
+  return timesheet
 }
 
 export async function findTodayTimesheet(employeeId: string, dateString: string): Promise<ITimesheet | null> {

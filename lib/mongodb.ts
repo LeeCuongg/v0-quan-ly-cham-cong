@@ -18,23 +18,30 @@ if (!cached) {
 }
 
 async function connectDB() {
+  console.log("[v0] 🔄 Đang kết nối MongoDB...")
+
   if (cached.conn) {
+    console.log("[v0] ✅ Sử dụng kết nối MongoDB đã có sẵn")
     return cached.conn
   }
 
   if (!cached.promise) {
+    console.log("[v0] 🆕 Tạo kết nối MongoDB mới...")
     const opts = {
       bufferCommands: false,
     }
 
     cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+      console.log("[v0] ✅ Kết nối MongoDB thành công!")
       return mongoose
     })
   }
 
   try {
     cached.conn = await cached.promise
+    console.log("[v0] 🎯 MongoDB đã sẵn sàng sử dụng")
   } catch (e) {
+    console.log("[v0] ❌ Lỗi kết nối MongoDB:", e)
     cached.promise = null
     throw e
   }
