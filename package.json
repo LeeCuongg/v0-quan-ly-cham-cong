@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
+    "db:migrate": "node scripts/migrate-to-mongodb.js",
+    "db:seed": "node scripts/seed-database.js",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start"
@@ -51,6 +53,7 @@
     "input-otp": "1.4.1",
     "jose": "latest",
     "lucide-react": "^0.454.0",
+    "mongoose": "latest",
     "next": "14.2.16",
     "next-themes": "latest",
     "react": "^18",
