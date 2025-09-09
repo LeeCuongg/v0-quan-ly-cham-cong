@@ -125,6 +125,41 @@ export async function getTodayTimesheet(employeeId: string): Promise<ITimesheet 
   }).exec()
 }
 
+export async function findTodayTimesheet(employeeId: string, dateString: string): Promise<ITimesheet | null> {
+  await connectDB()
+
+  const date = new Date(dateString)
+  date.setHours(0, 0, 0, 0)
+
+  const nextDay = new Date(date)
+  nextDay.setDate(nextDay.getDate() + 1)
+
+  return await Timesheet.findOne({
+    employeeId,
+    date: {
+      $gte: date,
+      $lt: nextDay,
+    },
+  }).exec()
+}
+
+export async function getTodayTimesheets(dateString: string): Promise<ITimesheet[]> {
+  await connectDB()
+
+  const date = new Date(dateString)
+  date.setHours(0, 0, 0, 0)
+
+  const nextDay = new Date(date)
+  nextDay.setDate(nextDay.getDate() + 1)
+
+  return await Timesheet.find({
+    date: {
+      $gte: date,
+      $lt: nextDay,
+    },
+  }).exec()
+}
+
 // Utility functions (keep existing ones)
 export function calculateTotalHours(checkIn: string, checkOut: string): number {
   const [inHour, inMinute] = checkIn.split(":").map(Number)

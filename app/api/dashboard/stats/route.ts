@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server"
-import { employees, timesheets } from "@/lib/database"
+import { getAllEmployees, getTodayTimesheets } from "@/lib/database-mongodb"
 
 export async function GET() {
   try {
     const today = new Date().toISOString().split("T")[0]
 
+    const employees = await getAllEmployees()
+    const todayTimesheets = await getTodayTimesheets(today)
+
     // Calculate dashboard statistics
     const totalEmployees = employees.length
     const currentlyWorking = employees.filter((emp) => emp.isCurrentlyWorking).length
-
-    const todayTimesheets = timesheets.filter((timesheet) => timesheet.date === today)
     const totalHoursToday = todayTimesheets.reduce((sum, timesheet) => sum + timesheet.totalHours, 0)
     const totalSalaryCost = todayTimesheets.reduce((sum, timesheet) => sum + timesheet.salary, 0)
 

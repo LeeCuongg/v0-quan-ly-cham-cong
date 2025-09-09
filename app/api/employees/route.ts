@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server"
-import { sampleEmployees } from "@/lib/database"
+import { getAllEmployees } from "@/lib/database-mongodb"
 
 export async function GET() {
   try {
-    return NextResponse.json(sampleEmployees)
+    const employees = await getAllEmployees()
+    return NextResponse.json(employees)
   } catch (error) {
+    console.error("[v0] Get employees error:", error)
     return NextResponse.json({ error: "Failed to fetch employees" }, { status: 500 })
   }
 }

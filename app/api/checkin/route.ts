@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { employees, timesheets } from "@/lib/database"
+import { findUserById, createTimesheet, findTodayTimesheet } from "@/lib/database-mongodb"
 import { getSession } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
@@ -14,14 +14,14 @@ export async function POST(request: NextRequest) {
     }
 
     const employeeIdStr = session.userId
-    const employee = employees.find((emp) => emp.id === employeeIdStr)
+    const employee = await findUserById(employeeIdStr)
     if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })
     }
 
     // Check if already checked in today
     const today = new Date().toISOString().split("T")[0]
-    const existingTimesheet = timesheets.find((ts) => ts.employeeId === employeeIdStr && ts.date === today)
+    const existingTimesheet = await findTodayTimesheet(employeeIdStr, today)
 
     if (existingTimesheet && existingTimesheet.checkIn) {
       return NextResponse.json({ error: "Already checked in today" }, { status: 400 })
@@ -31,19 +31,15 @@ export async function POST(request: NextRequest) {
     const now = new Date()
     const checkInTime = now.toTimeString().slice(0, 5)
 
-    const newTimesheet = {
-      id: (timesheets.length + 1).toString(),
+    const newTimesheet = await createTimesheet({
       employeeId: employeeIdStr,
       employeeName: employee.name,
-      date: today,
+      date: new Date(today),
       checkIn: checkInTime,
       checkOut: null,
       totalHours: 0,
       salary: 0,
-    }
-
-    timesheets.push(newTimesheet)
-    employee.isCurrentlyWorking = true
+    })
 
     return NextResponse.json({
       success: true,
@@ -51,6 +47,7 @@ export async function POST(request: NextRequest) {
       timesheet: newTimesheet,
     })
   } catch (error) {
+    console.error("[v0] Check-in error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

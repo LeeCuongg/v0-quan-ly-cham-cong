@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { findUserByEmail } from "@/lib/database"
+import { findUserByEmail } from "@/lib/database-mongodb"
 import { encrypt } from "@/lib/auth"
 import { cookies } from "next/headers"
 
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email và mật khẩu là bắt buộc" }, { status: 400 })
     }
 
-    const user = findUserByEmail(email)
+    const user = await findUserByEmail(email)
     console.log("[v0] User found:", user ? "Yes" : "No")
 
     if (!user) {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionPayload = {
-      userId: user.id,
+      userId: user._id.toString(),
       email: user.email,
       role: user.role,
       name: user.name,
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
+        id: user._id.toString(),
         name: user.name,
         email: user.email,
         role: user.role,

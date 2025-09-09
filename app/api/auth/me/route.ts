@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
-import { findUserById } from "@/lib/database"
+import { findUserById } from "@/lib/database-mongodb"
 
 export async function GET() {
   try {
@@ -14,7 +14,7 @@ export async function GET() {
     }
 
     console.log("[v0] Finding user by ID:", session.userId)
-    const user = findUserById(session.userId)
+    const user = await findUserById(session.userId)
     console.log("[v0] User found:", user ? "Yes" : "No")
 
     if (!user) {
@@ -24,7 +24,7 @@ export async function GET() {
 
     console.log("[v0] Returning user data:", user.name, user.email, user.role)
     return NextResponse.json({
-      id: user.id,
+      id: user._id.toString(),
       name: user.name,
       email: user.email,
       role: user.role,
