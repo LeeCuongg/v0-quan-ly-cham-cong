@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession, isManager, hashPassword } from "@/lib/auth"
-import { updateUser, deleteUser } from "@/lib/database"
+import { updateEmployee, deleteEmployee } from "@/lib/database-mongodb"
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -17,7 +17,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Tên là bắt buộc" }, { status: 400 })
     }
 
-    const updatedUser = updateUser(userId, {
+    const updatedUser = await updateEmployee(userId, {
       name,
       phone: phone || "",
       hourlyRate: hourlyRate || 0,
@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     return NextResponse.json({
-      id: updatedUser.id,
+      id: updatedUser._id?.toString() || updatedUser.id,
       name: updatedUser.name,
       email: updatedUser.email,
       hourlyRate: updatedUser.hourlyRate,
@@ -59,7 +59,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "Không thể xóa tài khoản quản trị viên" }, { status: 400 })
     }
 
-    const success = deleteUser(userId)
+    const success = await deleteEmployee(userId)
 
     if (!success) {
       return NextResponse.json({ error: "Không tìm thấy người dùng" }, { status: 404 })
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       const newPassword = Math.random().toString(36).slice(-8)
       const hashedPassword = await hashPassword(newPassword)
 
-      const updatedUser = updateUser(userId, {
+      const updatedUser = await updateEmployee(userId, {
         password: hashedPassword,
       })
 

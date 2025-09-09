@@ -63,6 +63,34 @@ export async function getAllEmployees(): Promise<IEmployee[]> {
   return await Employee.find({ isActive: true }).exec()
 }
 
+// Employee management functions as aliases and new functions
+export async function getEmployeeById(id: string): Promise<IEmployee | null> {
+  return await findUserById(id)
+}
+
+export async function createEmployee(employeeData: {
+  name: string
+  email: string
+  password: string
+  hourlyRate: number
+  role?: "employee" | "manager"
+  phone?: string
+}): Promise<IEmployee> {
+  return await createUser(employeeData)
+}
+
+export async function getEmployeeByEmail(email: string): Promise<IEmployee | null> {
+  return await findUserByEmail(email)
+}
+
+export async function updateEmployee(id: string, updates: Partial<IEmployee>): Promise<IEmployee | null> {
+  return await updateUser(id, updates)
+}
+
+export async function deleteEmployee(id: string): Promise<boolean> {
+  return await deleteUser(id)
+}
+
 // Timesheet operations
 export async function createTimesheet(timesheetData: {
   employeeId: string

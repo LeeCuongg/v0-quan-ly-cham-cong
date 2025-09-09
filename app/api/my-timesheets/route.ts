@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { timesheets } from "@/lib/database"
+import { getTimesheetsByEmployee } from "@/lib/database-mongodb"
 import { getSession } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -18,13 +18,13 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate")
 
     const employeeIdStr = session.userId
-    let filteredTimesheets = timesheets.filter((ts) => ts.employeeId === employeeIdStr)
+    let filteredTimesheets = await getTimesheetsByEmployee(employeeIdStr)
 
     if (startDate) {
-      filteredTimesheets = filteredTimesheets.filter((ts) => ts.date >= startDate)
+      filteredTimesheets = filteredTimesheets.filter((ts) => ts.date >= new Date(startDate))
     }
     if (endDate) {
-      filteredTimesheets = filteredTimesheets.filter((ts) => ts.date <= endDate)
+      filteredTimesheets = filteredTimesheets.filter((ts) => ts.date <= new Date(endDate))
     }
 
     // Sort by date descending

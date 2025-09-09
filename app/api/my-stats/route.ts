@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { timesheets, employees } from "@/lib/database"
+import { getTimesheetsByEmployee, getEmployeeById } from "@/lib/database-mongodb"
 import { getSession } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -14,12 +14,12 @@ export async function GET(request: NextRequest) {
     }
 
     const employeeIdStr = session.userId
-    const employee = employees.find((emp) => emp.id === employeeIdStr)
+    const employee = await getEmployeeById(employeeIdStr)
     if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })
     }
 
-    const employeeTimesheets = timesheets.filter((ts) => ts.employeeId === employeeIdStr)
+    const employeeTimesheets = await getTimesheetsByEmployee(employeeIdStr)
 
     // This week stats
     const today = new Date()
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       const date = new Date()
       date.setDate(date.getDate() - i)
       const dateStr = date.toISOString().split("T")[0]
-      const dayTimesheet = employeeTimesheets.find((ts) => ts.date === dateStr)
+      const dayTimesheet = employeeTimesheets.find((ts) => ts.date.toISOString().split("T")[0] === dateStr)
       last7Days.push({
         date: dateStr,
         hours: dayTimesheet ? dayTimesheet.totalHours : 0,

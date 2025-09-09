@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession, isManager, hashPassword } from "@/lib/auth"
-import { employees, createUser } from "@/lib/database"
+import { getAllEmployees, createEmployee, getEmployeeByEmail } from "@/lib/database-mongodb"
 
 export async function GET() {
   try {
@@ -10,10 +10,11 @@ export async function GET() {
       return NextResponse.json({ error: "Không có quyền truy cập" }, { status: 403 })
     }
 
+    const employees = await getAllEmployees()
     const userList = employees
       .filter((emp) => emp.role === "employee")
       .map((emp) => ({
-        id: emp.id,
+        id: emp._id?.toString() || emp.id,
         name: emp.name,
         email: emp.email,
         hourlyRate: emp.hourlyRate,
@@ -44,15 +45,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Tên, email và mật khẩu là bắt buộc" }, { status: 400 })
     }
 
-    // Check email uniqueness
-    const existingUser = employees.find((emp) => emp.email === email)
+    const existingUser = await getEmployeeByEmail(email)
     if (existingUser) {
       return NextResponse.json({ error: "Email đã tồn tại" }, { status: 400 })
     }
 
     const hashedPassword = await hashPassword(password)
 
-    const newUser = createUser({
+    const newUser = await createEmployee({
       name,
       email,
       password: hashedPassword,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({
-      id: newUser.id,
+      id: newUser._id?.toString() || newUser.id,
       name: newUser.name,
       email: newUser.email,
       hourlyRate: newUser.hourlyRate,
