@@ -415,28 +415,72 @@ export async function getTodayTimesheet(employeeId: string): Promise<any | null>
   }
 }
 
-// Utility functions
 export function calculateTotalHours(checkIn: string, checkOut: string): number {
-  console.log("[v0] CALC: calculateTotalHours called with checkIn:", checkIn, "checkOut:", checkOut)
+  console.log("[CALC] calculateTotalHours called with checkIn:", checkIn, "checkOut:", checkOut)
 
-  const [inHour, inMinute] = checkIn.split(":").map(Number)
-  const [outHour, outMinute] = checkOut.split(":").map(Number)
+  try {
+    // Parse time strings (format: "HH:MM" hoặc "HH:MM:SS")
+    const parseTime = (timeStr: string): number => {
+      const parts = timeStr.split(":")
+      const hours = parseInt(parts[0])
+      const minutes = parseInt(parts[1])
+      return hours + minutes / 60
+    }
 
-  const checkInTime = inHour + inMinute / 60
-  const checkOutTime = outHour + outMinute / 60
+    const checkInTime = parseTime(checkIn)
+    const checkOutTime = parseTime(checkOut)
+    
+    console.log("[CALC] Parsed times - checkIn:", checkInTime, "checkOut:", checkOutTime)
 
-  // Subtract 1 hour for lunch break
-  const totalHours = Math.max(0, checkOutTime - checkInTime - 1)
-  console.log("[v0] CALC: calculateTotalHours result:", totalHours)
-  return totalHours
+    let totalHours = checkOutTime - checkInTime
+
+    // Xử lý trường hợp qua ngày (ví dụ: check-in 23:00, check-out 01:00)
+    if (totalHours < 0) {
+      totalHours += 24
+      console.log("[CALC] Adjusted for next day, total hours:", totalHours)
+    }
+
+    // Trừ 1 giờ nghỉ trưa nếu làm việc > 6 giờ
+    if (totalHours > 6) {
+      totalHours -= 1
+      console.log("[CALC] Deducted 1 hour for lunch break")
+    }
+
+    const finalHours = Math.max(0, totalHours)
+    console.log("[CALC] Final total hours:", finalHours)
+    
+    return finalHours
+  } catch (error) {
+    console.error("[CALC] Error calculating hours:", error)
+    return 0
+  }
 }
 
 export function calculateSalary(totalHours: number, hourlyRate: number): number {
-  console.log("[v0] CALC: calculateSalary called with totalHours:", totalHours, "hourlyRate:", hourlyRate)
+  console.log("[CALC] calculateSalary called with totalHours:", totalHours, "hourlyRate:", hourlyRate)
 
-  const salary = totalHours * hourlyRate
-  console.log("[v0] CALC: calculateSalary result:", salary)
-  return salary
+  try {
+    const regularHours = Math.min(totalHours, 8)
+    const overtimeHours = Math.max(0, totalHours - 8)
+    
+    const regularSalary = regularHours * hourlyRate
+    const overtimeSalary = overtimeHours * hourlyRate * 1.5 // 150% for overtime
+    
+    const totalSalary = regularSalary + overtimeSalary
+    
+    console.log("[CALC] Salary breakdown:", {
+      regularHours,
+      overtimeHours,
+      regularSalary,
+      overtimeSalary,
+      totalSalary
+    })
+    
+    return totalSalary
+  } catch (error) {
+    console.error("[CALC] Error calculating salary:", error)
+    return 0
+  }
 }
 
 // Legacy exports for backward compatibility

@@ -1,4 +1,3 @@
-// app/api/checkout/route.ts - Phiên bản cải thiện
 import { type NextRequest, NextResponse } from "next/server"
 import {
   getAllEmployees,
@@ -12,35 +11,69 @@ import { getSession } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("[API] ===== CHECKOUT REQUEST START =====")
+    
+    // Lấy body request
+    const body = await request.json().catch(e => {
+      console.log("[API] No JSON body or invalid JSON:", e)
+      return {}
+    })
+    
+    console.log("[API] Request body:", body)
+
     const session = await getSession()
+    console.log("[API] Session:", session)
+    
     if (!session) {
+      console.log("[API] No session found")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     if (session.role !== "employee") {
+      console.log("[API] Invalid role:", session.role)
       return NextResponse.json({ error: "Only employees can check out" }, { status: 403 })
     }
 
     const employeeIdStr = session.userId
+    console.log("[API] Employee ID:", employeeIdStr)
+    
     const employees = await getAllEmployees()
+    console.log("[API] Total employees found:", employees.length)
+    
     const employee = employees.find((emp) => emp.id === employeeIdStr)
+    console.log("[API] Employee found:", employee ? "YES" : "NO")
+    console.log("[API] Employee data:", employee)
     
     if (!employee) {
+      console.log("[API] Employee not found for ID:", employeeIdStr)
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })
     }
 
     // Tìm bản ghi chấm công hôm nay
+    console.log("[API] Finding today's timesheet...")
     const timesheet = await getTodayTimesheet(employeeIdStr)
+    console.log("[API] Today's timesheet:", timesheet)
 
-    if (!timesheet || !timesheet.check_in) {
+    if (!timesheet) {
+      console.log("[API] No timesheet found for today")
+      return NextResponse.json({ 
+        error: "Chưa có bản ghi chấm công hôm nay. Vui lòng check-in trước." 
+      }, { status: 400 })
+    }
+
+    if (!timesheet.check_in_time && !timesheet.check_in) {
+      console.log("[API] No check-in time found")
       return NextResponse.json({ 
         error: "Chưa chấm công vào. Vui lòng check-in trước." 
       }, { status: 400 })
     }
 
-    if (timesheet.check_out) {
+    if (timesheet.check_out_time || timesheet.check_out) {
+      console.log("[API] Already checked out")
+      const checkOutTime = timesheet.check_out_time || 
+        (timesheet.check_out ? new Date(timesheet.check_out).toTimeString().slice(0, 5) : null)
       return NextResponse.json({ 
-        error: "Đã check-out lúc " + timesheet.check_out,
+        error: "Đã check-out hôm nay lúc " + checkOutTime,
         timesheet 
       }, { status: 400 })
     }
@@ -48,33 +81,70 @@ export async function POST(request: NextRequest) {
     // Tính toán thời gian làm việc
     const now = new Date()
     const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000) // UTC+7
-    const checkOutTime = vietnamTime.toTimeString().slice(0, 5)
+    const checkOutTime = vietnamTime.toTimeString().slice(0, 5) // "HH:MM"
 
-    // Kiểm tra thời gian tối thiểu (ví dụ: phải làm ít nhất 1 giờ)
-    const totalHours = calculateTotalHours(timesheet.check_in, checkOutTime)
+    console.log("[API] Checkout time calculation:", {
+      now: now.toISOString(),
+      vietnamTime: vietnamTime.toISOString(),
+      checkOutTime,
+      checkInTime: timesheet.check_in_time
+    })
+
+    // Sử dụng check_in_time để tính toán
+    const checkInTimeStr = timesheet.check_in_time
+    if (!checkInTimeStr) {
+      return NextResponse.json({ 
+        error: "Không tìm thấy thời gian check-in." 
+      }, { status: 400 })
+    }
+
+    // Kiểm tra thời gian tối thiểu (ví dụ: phải làm ít nhất 30 phút)
+    const totalHours = calculateTotalHours(checkInTimeStr, checkOutTime)
+    console.log("[API] Total hours calculated:", totalHours)
     
     if (totalHours < 0.5) {
+      console.log("[API] Working time too short:", totalHours)
       return NextResponse.json({ 
-        error: "Thời gian làm việc quá ngắn. Tối thiểu 30 phút." 
+        error: `Thời gian làm việc quá ngắn (${totalHours.toFixed(1)} giờ). Tối thiểu 30 phút.` 
       }, { status: 400 })
     }
 
     const salary = calculateSalary(totalHours, employee.hourly_rate)
+    console.log("[API] Salary calculated:", salary)
 
-    // Cập nhật bản ghi chấm công
-    const updatedTimesheet = await updateTimesheet(timesheet.id, {
-      check_out: checkOutTime,
+    // Chuẩn bị dữ liệu update
+    const updateData = {
+      check_out_time: checkOutTime, // Will be converted to TIME format in updateTimesheet
       total_hours: Math.round(totalHours * 100) / 100,
       salary: Math.round(salary),
-    })
+    }
+    
+    console.log("[API] Update data:", updateData)
+
+    // Cập nhật bản ghi chấm công
+    console.log("[API] Updating timesheet...")
+    const updatedTimesheet = await updateTimesheet(timesheet.id, updateData)
+    console.log("[API] Updated timesheet result:", updatedTimesheet)
+
+    if (!updatedTimesheet) {
+      console.log("[API] Failed to update timesheet")
+      return NextResponse.json({ 
+        error: "Không thể cập nhật bản ghi chấm công" 
+      }, { status: 500 })
+    }
 
     // Cập nhật trạng thái nhân viên
-    await updateUser(employeeIdStr, { 
+    console.log("[API] Updating employee working status...")
+    const employeeUpdateData = { 
       is_currently_working: false,
       total_hours_this_month: employee.total_hours_this_month + totalHours
-    })
+    }
+    console.log("[API] Employee update data:", employeeUpdateData)
+    
+    const updateResult = await updateUser(employeeIdStr, employeeUpdateData)
+    console.log("[API] Employee update result:", updateResult)
 
-    return NextResponse.json({
+    const response = {
       success: true,
       message: `Check-out thành công lúc ${checkOutTime}. Bạn đã làm ${totalHours.toFixed(1)} giờ.`,
       timesheet: {
@@ -84,9 +154,64 @@ export async function POST(request: NextRequest) {
         salary: Math.round(salary),
         employeeName: employee.name
       },
+      summary: {
+        checkInTime: checkInTimeStr,
+        checkOutTime: checkOutTime,
+        totalHours: totalHours.toFixed(1),
+        salary: Math.round(salary),
+        hourlyRate: employee.hourly_rate
+      }
+    }
+    
+    console.log("[API] Sending checkout response:", response)
+    console.log("[API] ===== CHECKOUT REQUEST END =====")
+    
+    return NextResponse.json(response)
+
+  } catch (error) {
+    console.error("[API] ===== CHECKOUT ERROR =====")
+    console.error("[API] Error:", error)
+    console.error("[API] Error stack:", error.stack)
+    console.error("[API] ============================")
+    
+    return NextResponse.json({ 
+      error: "Internal server error",
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 })
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const employeeIdStr = session.userId
+    const todayTimesheet = await getTodayTimesheet(employeeIdStr)
+
+    if (!todayTimesheet) {
+      return NextResponse.json({
+        canCheckOut: false,
+        reason: "No timesheet found for today"
+      })
+    }
+
+    const hasCheckedIn = !!(todayTimesheet.check_in_time || todayTimesheet.check_in)
+    const hasCheckedOut = !!(todayTimesheet.check_out_time || todayTimesheet.check_out)
+
+    return NextResponse.json({
+      canCheckOut: hasCheckedIn && !hasCheckedOut,
+      hasCheckedIn,
+      hasCheckedOut,
+      checkInTime: todayTimesheet.check_in_time,
+      checkOutTime: todayTimesheet.check_out_time,
+      timesheet: todayTimesheet
     })
   } catch (error) {
-    console.error("[v0] Checkout error:", error)
+    console.error("[API] Check checkout status error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

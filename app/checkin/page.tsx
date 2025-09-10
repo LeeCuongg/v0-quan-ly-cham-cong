@@ -140,45 +140,89 @@ export default function CheckinPage() {
 }
 
   const handleCheckout = async () => {
-    if (!user) return
+  if (!user) {
+    console.log("[Frontend] No user found")
+    return
+  }
 
-    setLoading(true)
-    try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+  console.log("[Frontend] Starting checkout process...")
+  console.log("[Frontend] Current checkin status:", checkinStatus)
+
+  setLoading(true)
+  try {
+    const requestBody = {
+      location: location.latitude && location.longitude ? {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy
+      } : null,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent
+    }
+
+    console.log("[Frontend] Checkout request body:", requestBody)
+    console.log("[Frontend] Sending POST to /api/checkout...")
+
+    const response = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(requestBody),
+    })
+
+    console.log("[Frontend] Checkout response status:", response.status)
+    
+    const data = await response.json()
+    console.log("[Frontend] Checkout response data:", data)
+
+    if (response.ok) {
+      console.log("[Frontend] Checkout successful")
+      setCheckinStatus({
+        status: "finished",
+        canCheckIn: false,
+        canCheckOut: false,
+        checkInTime: checkinStatus.checkInTime,
+        checkOutTime: data.timesheet.checkOut,
+        totalHours: data.timesheet.totalHours,
+        timesheet: data.timesheet
       })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setCheckinStatus({
-          isCheckedIn: false,
-          checkInTime: checkinStatus.checkInTime,
-          status: "finished",
-        })
-        toast({
-          title: "Check-out thành công!",
-          description: `Bạn đã hoàn thành ${data.timesheet.totalHours} giờ làm việc`,
-        })
-      } else {
-        toast({
-          title: "Lỗi",
-          description: data.error,
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
+      
+      // Show detailed success message
       toast({
-        title: "Lỗi",
-        description: "Không thể kết nối đến server",
+        title: "✅ Check-out thành công!",
+        description: (
+          <div className="space-y-1">
+            <div>{data.message}</div>
+            {data.summary && (
+              <div className="text-xs mt-2 space-y-1">
+                <div>⏰ {data.summary.checkInTime} - {data.summary.checkOutTime}</div>
+                <div>💰 Lương: {parseInt(data.summary.salary).toLocaleString('vi-VN')}đ</div>
+              </div>
+            )}
+          </div>
+        ),
+      })
+    } else {
+      console.log("[Frontend] Checkout failed:", data.error)
+      toast({
+        title: "Lỗi check-out",
+        description: data.error,
         variant: "destructive",
       })
-    } finally {
-      setLoading(false)
     }
+  } catch (error) {
+    console.error("[Frontend] Checkout error:", error)
+    toast({
+      title: "Lỗi kết nối",
+      description: "Không thể kết nối đến server",
+      variant: "destructive",
+    })
+  } finally {
+    setLoading(false)
   }
+}
 
   const getStatusBadge = () => {
     switch (checkinStatus.status) {
