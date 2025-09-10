@@ -6,7 +6,7 @@ import { getSessionFromRequest } from "@/lib/auth"
 const protectedRoutes = {
   "/": ["manager", "employee"], // Dashboard - both roles
   "/employees": ["manager"], // Employee management - manager only
-  "/timesheets": ["manager"], // Timesheet management - manager only
+  "/timesheets": ["manager", "admin"],
   "/users": ["manager"], // User management - manager only
   "/checkin": ["employee"], // Check-in - employee only
   "/my-timesheets": ["employee"], // Personal timesheets - employee only
