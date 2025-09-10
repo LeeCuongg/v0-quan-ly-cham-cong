@@ -67,45 +67,77 @@ export default function CheckinPage() {
   }
 
   const handleCheckin = async () => {
-    if (!user) return
+  if (!user) {
+    console.log("[Frontend] No user found")
+    return
+  }
 
-    setLoading(true)
-    try {
-      const response = await fetch("/api/checkin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+  console.log("[Frontend] Starting checkin process...")
+  console.log("[Frontend] User:", user)
+  console.log("[Frontend] Location:", location)
+
+  setLoading(true)
+  try {
+    const requestBody = {
+      location: location.latitude && location.longitude ? {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy
+      } : null,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent
+    }
+
+    console.log("[Frontend] Request body:", requestBody)
+    console.log("[Frontend] Sending POST to /api/checkin...")
+
+    const response = await fetch("/api/checkin", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(requestBody),
+    })
+
+    console.log("[Frontend] Response status:", response.status)
+    console.log("[Frontend] Response headers:", Object.fromEntries(response.headers.entries()))
+
+    const data = await response.json()
+    console.log("[Frontend] Response data:", data)
+
+    if (response.ok) {
+      console.log("[Frontend] Checkin successful")
+      setCheckinStatus({
+        status: "working",
+        canCheckIn: false,
+        canCheckOut: true,
+        checkInTime: data.timesheet.checkIn,
+        timesheet: data.timesheet
       })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setCheckinStatus({
-          isCheckedIn: true,
-          checkInTime: data.timesheet.checkIn,
-          status: "working",
-        })
-        toast({
-          title: "Chấm công thành công!",
-          description: `Bạn đã check-in lúc ${data.timesheet.checkIn}`,
-        })
-      } else {
-        toast({
-          title: "Lỗi",
-          description: data.error,
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
       toast({
-        title: "Lỗi",
-        description: "Không thể kết nối đến server",
+        title: "✅ Chấm công thành công!",
+        description: data.message,
+      })
+    } else {
+      console.log("[Frontend] Checkin failed:", data.error)
+      toast({
+        title: "Lỗi chấm công",
+        description: data.error,
         variant: "destructive",
       })
-    } finally {
-      setLoading(false)
     }
+  } catch (error) {
+    console.error("[Frontend] Checkin error:", error)
+    toast({
+      title: "Lỗi kết nối",
+      description: "Không thể kết nối đến server",
+      variant: "destructive",
+    })
+  } finally {
+    setLoading(false)
   }
+}
 
   const handleCheckout = async () => {
     if (!user) return
