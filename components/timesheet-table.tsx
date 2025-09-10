@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Clock, Filter, Download } from "lucide-react"
-import { type Timesheet, type Employee, formatCurrency } from "@/lib/database"
+import { type Timesheet, type Employee, formatCurrency } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 
 export function TimesheetTable() {
