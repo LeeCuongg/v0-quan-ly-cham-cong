@@ -237,116 +237,180 @@ export async function getTimesheetsByEmployeeId(employeeId: string): Promise<any
 }
 
 export async function createTimesheet(timesheetData: any): Promise<any | null> {
-  console.log("[v0] DB: createTimesheet called with data:", timesheetData)
+  console.log("[DB] ===== CREATE TIMESHEET START =====")
+  console.log("[DB] Input data:", JSON.stringify(timesheetData, null, 2))
   const startTime = Date.now()
 
   try {
     const { createClient } = await import("@/lib/supabase/server")
     const supabase = await createClient()
-    console.log("[v0] DB: Supabase client created successfully")
+    console.log("[DB] Supabase client created successfully")
 
-    // Map dữ liệu để khớp với database schema
-    const mappedData = {
-      employee_id: timesheetData.employee_id,
-      date: timesheetData.date,
-      check_in_time: timesheetData.check_in_time || timesheetData.check_in,
-      check_out_time: timesheetData.check_out_time || timesheetData.check_out || null,
-      total_hours: timesheetData.total_hours || 0,
-      salary: timesheetData.salary || 0,
-      employee_name: timesheetData.employee_name || null,
-      hours_worked: timesheetData.hours_worked || timesheetData.total_hours || 0,
-      // Thêm cả check_in và check_out nếu database có cả 2
-      check_in: timesheetData.check_in_time || timesheetData.check_in,
-      check_out: timesheetData.check_out_time || timesheetData.check_out || null,
+    // Tạo timestamp đầy đủ cho Vietnam timezone
+    const createTimestamp = (date: string, timeStr: string): string => {
+      // timeStr format: "21:15"
+      // date format: "2025-09-10"
+      return `${date} ${timeStr}:00+07:00`
     }
 
-    console.log("[v0] DB: Mapped timesheet data:", mappedData)
+    // Tạo TIME format (chỉ giờ:phút:giây)
+    const createTimeFormat = (timeStr: string): string => {
+      return `${timeStr}:00` // "21:15" -> "21:15:00"
+    }
+
+    const insertData = {
+      employee_id: timesheetData.employee_id,
+      date: timesheetData.date,
+      // TIME columns
+      check_in_time: createTimeFormat(timesheetData.check_in_time),
+      check_out_time: null,
+      // TIMESTAMP columns  
+      check_in: createTimestamp(timesheetData.date, timesheetData.check_in_time),
+      check_out: null,
+      // Other fields
+      total_hours: 0,
+      salary: 0,
+      employee_name: timesheetData.employee_name,
+      hours_worked: 0,
+    }
+
+    console.log("[DB] Final insert data:", JSON.stringify(insertData, null, 2))
 
     const { data, error } = await supabase
       .from("timesheets")
-      .insert([mappedData])
+      .insert([insertData])
       .select()
       .single()
     
     const duration = Date.now() - startTime
 
     if (error) {
-      console.log("[v0] DB: createTimesheet error:", error)
-      console.log("[v0] DB: Query duration:", duration + "ms")
+      console.error("[DB] ===== SUPABASE ERROR =====")
+      console.error("[DB] Error message:", error.message)
+      console.error("[DB] Error details:", error.details)
+      console.error("[DB] Error hint:", error.hint) 
+      console.error("[DB] Error code:", error.code)
+      console.error("[DB] ============================")
       return null
     }
 
-    console.log("[v0] DB: createTimesheet success, created timesheet id:", data?.id)
-    console.log("[v0] DB: Query duration:", duration + "ms")
+    console.log("[DB] SUCCESS - Created timesheet:", JSON.stringify(data, null, 2))
+    console.log("[DB] Query duration:", duration + "ms")
+    console.log("[DB] ===== CREATE TIMESHEET END =====")
     return data
+    
   } catch (err) {
-    console.log("[v0] DB: createTimesheet exception:", err)
+    console.error("[DB] ===== EXCEPTION ERROR =====")
+    console.error("[DB] Exception:", err)
+    console.error("[DB] ==============================")
     return null
   }
 }
 
 export async function updateTimesheet(id: string, updates: any): Promise<any | null> {
-  console.log("[v0] DB: updateTimesheet called with id:", id, "updates:", updates)
+  console.log("[DB] ===== UPDATE TIMESHEET START =====")
+  console.log("[DB] Timesheet ID:", id)
+  console.log("[DB] Updates:", JSON.stringify(updates, null, 2))
   const startTime = Date.now()
 
   try {
     const { createClient } = await import("@/lib/supabase/server")
     const supabase = await createClient()
-    console.log("[v0] DB: Supabase client created successfully")
+    console.log("[DB] Supabase client created successfully")
 
-    const { data, error } = await supabase.from("timesheets").update(updates).eq("id", id).select().single()
+    // Chuẩn hóa dữ liệu update
+    const mappedUpdates: any = {
+      total_hours: updates.total_hours,
+      salary: updates.salary,
+    }
+
+    // Nếu có check_out_time, tạo cả TIME và TIMESTAMP format
+    if (updates.check_out_time || updates.check_out) {
+      const checkOutTime = updates.check_out_time || updates.check_out
+      
+      // Lấy thông tin timesheet hiện tại để có date
+      const { data: currentTimesheet } = await supabase
+        .from("timesheets")
+        .select("date")
+        .eq("id", id)
+        .single()
+
+      if (currentTimesheet) {
+        mappedUpdates.check_out_time = `${checkOutTime}:00` // TIME format
+        mappedUpdates.check_out = `${currentTimesheet.date} ${checkOutTime}:00+07:00` // TIMESTAMP format
+        mappedUpdates.hours_worked = updates.total_hours // Sync hours_worked
+      }
+    }
+
+    console.log("[DB] Mapped updates:", JSON.stringify(mappedUpdates, null, 2))
+
+    const { data, error } = await supabase
+      .from("timesheets")
+      .update(mappedUpdates)
+      .eq("id", id)
+      .select()
+      .single()
+    
     const duration = Date.now() - startTime
 
     if (error) {
-      console.log("[v0] DB: updateTimesheet error:", error)
-      console.log("[v0] DB: Query duration:", duration + "ms")
+      console.error("[DB] ===== UPDATE ERROR =====")
+      console.error("[DB] Error:", JSON.stringify(error, null, 2))
+      console.error("[DB] Query duration:", duration + "ms")
+      console.error("[DB] ===========================")
       return null
     }
 
-    console.log("[v0] DB: updateTimesheet success, updated timesheet id:", data?.id)
-    console.log("[v0] DB: Query duration:", duration + "ms")
+    console.log("[DB] SUCCESS - Updated timesheet:", JSON.stringify(data, null, 2))
+    console.log("[DB] Query duration:", duration + "ms")
+    console.log("[DB] ===== UPDATE TIMESHEET END =====")
     return data
+    
   } catch (err) {
-    console.log("[v0] DB: updateTimesheet exception:", err)
+    console.error("[DB] ===== UPDATE EXCEPTION =====")
+    console.error("[DB] Exception:", err)
+    console.error("[DB] ================================")
     return null
   }
 }
 
 export async function getTodayTimesheet(employeeId: string): Promise<any | null> {
   const today = new Date().toISOString().split("T")[0]
-  console.log("[v0] DB: getTodayTimesheet called with employeeId:", employeeId, "date:", today)
+  console.log("[DB] getTodayTimesheet called with employeeId:", employeeId, "date:", today)
   const startTime = Date.now()
 
   try {
     const { createClient } = await import("@/lib/supabase/server")
     const supabase = await createClient()
-    console.log("[v0] DB: Supabase client created successfully")
+    console.log("[DB] Supabase client created successfully")
 
     const { data, error } = await supabase
       .from("timesheets")
       .select("*")
       .eq("employee_id", employeeId)
       .eq("date", today)
-      .single()
+      .maybeSingle() // Dùng maybeSingle() thay vì single() để không lỗi khi không có data
+    
     const duration = Date.now() - startTime
 
     if (error) {
-      console.log("[v0] DB: getTodayTimesheet error:", error)
-      console.log("[v0] DB: Query duration:", duration + "ms")
-      // Nếu không tìm thấy record thì không phải lỗi
-      if (error.code === 'PGRST116') {
-        console.log("[v0] DB: No timesheet found for today - this is normal")
-        return null
-      }
+      console.log("[DB] getTodayTimesheet error:", error)
+      console.log("[DB] Query duration:", duration + "ms")
       return null
     }
 
-    console.log("[v0] DB: getTodayTimesheet success, found timesheet:", data ? "YES" : "NO")
-    console.log("[v0] DB: Timesheet data:", data)
-    console.log("[v0] DB: Query duration:", duration + "ms")
+    if (!data) {
+      console.log("[DB] No timesheet found for today - this is normal for first checkin")
+      console.log("[DB] Query duration:", duration + "ms")
+      return null
+    }
+
+    console.log("[DB] getTodayTimesheet success, found timesheet:", JSON.stringify(data, null, 2))
+    console.log("[DB] Query duration:", duration + "ms")
     return data
+    
   } catch (err) {
-    console.log("[v0] DB: getTodayTimesheet exception:", err)
+    console.log("[DB] getTodayTimesheet exception:", err)
     return null
   }
 }
