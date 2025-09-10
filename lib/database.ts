@@ -245,7 +245,29 @@ export async function createTimesheet(timesheetData: any): Promise<any | null> {
     const supabase = await createClient()
     console.log("[v0] DB: Supabase client created successfully")
 
-    const { data, error } = await supabase.from("timesheets").insert([timesheetData]).select().single()
+    // Map dữ liệu để khớp với database schema
+    const mappedData = {
+      employee_id: timesheetData.employee_id,
+      date: timesheetData.date,
+      check_in_time: timesheetData.check_in_time || timesheetData.check_in,
+      check_out_time: timesheetData.check_out_time || timesheetData.check_out || null,
+      total_hours: timesheetData.total_hours || 0,
+      salary: timesheetData.salary || 0,
+      employee_name: timesheetData.employee_name || null,
+      hours_worked: timesheetData.hours_worked || timesheetData.total_hours || 0,
+      // Thêm cả check_in và check_out nếu database có cả 2
+      check_in: timesheetData.check_in_time || timesheetData.check_in,
+      check_out: timesheetData.check_out_time || timesheetData.check_out || null,
+    }
+
+    console.log("[v0] DB: Mapped timesheet data:", mappedData)
+
+    const { data, error } = await supabase
+      .from("timesheets")
+      .insert([mappedData])
+      .select()
+      .single()
+    
     const duration = Date.now() - startTime
 
     if (error) {
