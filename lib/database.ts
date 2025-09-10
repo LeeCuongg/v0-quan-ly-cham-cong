@@ -1,44 +1,12 @@
-import { createClient } from "@/lib/supabase/server"
+// import { createClient } from "@/lib/supabase/server"
 
-// Database connection and models for timesheet management
-export interface Employee {
-  id: string
-  name: string
-  email: string
-  hourly_rate: number
-  total_hours_this_month: number
-  is_currently_working: boolean
-  password_hash?: string
-  role: "employee" | "manager"
-  is_active: boolean
-  created_at: string
-  phone?: string
-}
+// Re-export types and utilities for backward compatibility
+export type { Employee, Timesheet, User } from "@/lib/types"
+export { formatCurrency, formatDate, formatTime, formatDateTime } from "@/lib/types"
 
-export interface Timesheet {
-  id: string
-  employee_id: string
-  date: string
-  check_in: string
-  check_out: string | null
-  total_hours: number
-  salary: number
-  created_at?: string
-}
-
-export interface User {
-  id: string
-  name: string
-  email: string
-  password_hash: string
-  role: "employee" | "manager"
-  is_active: boolean
-  created_at: string
-  phone?: string
-  hourly_rate: number
-}
-
-export async function findUserByEmail(email: string): Promise<Employee | null> {
+// Server-side database functions (only for API routes and server components)
+export async function findUserByEmail(email: string): Promise<any | null> {
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { data, error } = await supabase.from("employees").select("*").eq("email", email).eq("is_active", true).single()
 
@@ -46,7 +14,8 @@ export async function findUserByEmail(email: string): Promise<Employee | null> {
   return data
 }
 
-export async function findUserById(id: string): Promise<Employee | null> {
+export async function findUserById(id: string): Promise<any | null> {
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { data, error } = await supabase.from("employees").select("*").eq("id", id).eq("is_active", true).single()
 
@@ -54,7 +23,8 @@ export async function findUserById(id: string): Promise<Employee | null> {
   return data
 }
 
-export async function getAllEmployees(): Promise<Employee[]> {
+export async function getAllEmployees(): Promise<any[]> {
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { data, error } = await supabase.from("employees").select("*").eq("is_active", true).order("name")
 
@@ -62,7 +32,8 @@ export async function getAllEmployees(): Promise<Employee[]> {
   return data || []
 }
 
-export async function createUser(userData: Omit<Employee, "id" | "created_at">): Promise<Employee | null> {
+export async function createUser(userData: any): Promise<any | null> {
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { data, error } = await supabase.from("employees").insert([userData]).select().single()
 
@@ -70,7 +41,8 @@ export async function createUser(userData: Omit<Employee, "id" | "created_at">):
   return data
 }
 
-export async function updateUser(id: string, updates: Partial<Employee>): Promise<Employee | null> {
+export async function updateUser(id: string, updates: any): Promise<any | null> {
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { data, error } = await supabase.from("employees").update(updates).eq("id", id).select().single()
 
@@ -79,13 +51,15 @@ export async function updateUser(id: string, updates: Partial<Employee>): Promis
 }
 
 export async function deleteUser(id: string): Promise<boolean> {
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { error } = await supabase.from("employees").update({ is_active: false }).eq("id", id)
 
   return !error
 }
 
-export async function getAllTimesheets(): Promise<Timesheet[]> {
+export async function getAllTimesheets(): Promise<any[]> {
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("timesheets")
@@ -99,7 +73,8 @@ export async function getAllTimesheets(): Promise<Timesheet[]> {
   return data || []
 }
 
-export async function getTimesheetsByEmployeeId(employeeId: string): Promise<Timesheet[]> {
+export async function getTimesheetsByEmployeeId(employeeId: string): Promise<any[]> {
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("timesheets")
@@ -111,7 +86,8 @@ export async function getTimesheetsByEmployeeId(employeeId: string): Promise<Tim
   return data || []
 }
 
-export async function createTimesheet(timesheetData: Omit<Timesheet, "id" | "created_at">): Promise<Timesheet | null> {
+export async function createTimesheet(timesheetData: any): Promise<any | null> {
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { data, error } = await supabase.from("timesheets").insert([timesheetData]).select().single()
 
@@ -119,7 +95,8 @@ export async function createTimesheet(timesheetData: Omit<Timesheet, "id" | "cre
   return data
 }
 
-export async function updateTimesheet(id: string, updates: Partial<Timesheet>): Promise<Timesheet | null> {
+export async function updateTimesheet(id: string, updates: any): Promise<any | null> {
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { data, error } = await supabase.from("timesheets").update(updates).eq("id", id).select().single()
 
@@ -127,8 +104,9 @@ export async function updateTimesheet(id: string, updates: Partial<Timesheet>): 
   return data
 }
 
-export async function getTodayTimesheet(employeeId: string): Promise<Timesheet | null> {
+export async function getTodayTimesheet(employeeId: string): Promise<any | null> {
   const today = new Date().toISOString().split("T")[0]
+  const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("timesheets")
@@ -157,17 +135,11 @@ export function calculateSalary(totalHours: number, hourlyRate: number): number 
   return totalHours * hourlyRate
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount)
-}
-
-export const employees: Employee[] = []
-export const timesheets: Timesheet[] = []
-export const sampleEmployees: Employee[] = []
-export const sampleTimesheets: Timesheet[] = []
+// Legacy exports for backward compatibility
+export const employees: any[] = []
+export const timesheets: any[] = []
+export const sampleEmployees: any[] = []
+export const sampleTimesheets: any[] = []
 
 export async function initializeData() {
   const allEmployees = await getAllEmployees()
