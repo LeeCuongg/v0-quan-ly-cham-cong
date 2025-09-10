@@ -21,9 +21,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 })
     }
 
-    // For demo purposes, accept simple passwords
     const isValidPassword =
-      (password === "admin123" && user.role === "manager") || (password === "emp123" && user.role === "employee")
+      password === user.password ||
+      (password === "admin123" && user.role === "admin") ||
+      (password === "emp123" && user.role === "employee")
 
     console.log("[v0] Password validation result:", isValidPassword)
 
