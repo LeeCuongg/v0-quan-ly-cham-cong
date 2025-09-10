@@ -7,11 +7,13 @@ CREATE TABLE IF NOT EXISTS public.employees (
   total_hours_this_month DECIMAL(8,2) NOT NULL DEFAULT 0,
   is_currently_working BOOLEAN NOT NULL DEFAULT false,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('employee', 'manager')) DEFAULT 'employee',
+  role TEXT NOT NULL CHECK (role IN ('employee', 'admin')) DEFAULT 'employee',
   is_active BOOLEAN NOT NULL DEFAULT true,
   phone TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  password TEXT,
+  current_check_in TIMESTAMP WITH TIME ZONE
 );
 
 -- Create timesheets table
@@ -19,12 +21,16 @@ CREATE TABLE IF NOT EXISTS public.timesheets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
   date DATE NOT NULL,
-  check_in TIME NOT NULL,
-  check_out TIME,
+  check_in_time TIME NOT NULL,
+  check_out_time TIME,
   total_hours DECIMAL(8,2) NOT NULL DEFAULT 0,
   salary DECIMAL(12,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  employee_name TEXT,
+  hours_worked DECIMAL(8,2),
+  check_in TIMESTAMP WITH TIME ZONE,
+  check_out TIMESTAMP WITH TIME ZONE,
   UNIQUE(employee_id, date)
 );
 
