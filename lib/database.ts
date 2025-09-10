@@ -333,10 +333,16 @@ export async function getTodayTimesheet(employeeId: string): Promise<any | null>
     if (error) {
       console.log("[v0] DB: getTodayTimesheet error:", error)
       console.log("[v0] DB: Query duration:", duration + "ms")
+      // Nếu không tìm thấy record thì không phải lỗi
+      if (error.code === 'PGRST116') {
+        console.log("[v0] DB: No timesheet found for today - this is normal")
+        return null
+      }
       return null
     }
 
     console.log("[v0] DB: getTodayTimesheet success, found timesheet:", data ? "YES" : "NO")
+    console.log("[v0] DB: Timesheet data:", data)
     console.log("[v0] DB: Query duration:", duration + "ms")
     return data
   } catch (err) {
