@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
-import { updateEmployee } from "@/lib/database-mongodb"
+import { updateUser } from "@/lib/database"
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
     const { hourlyRate } = await request.json()
 
-    const updatedEmployee = await updateEmployee(params.id, { hourlyRate })
+    const updatedEmployee = await updateUser(params.id, { hourly_rate: hourlyRate })
 
     if (!updatedEmployee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })

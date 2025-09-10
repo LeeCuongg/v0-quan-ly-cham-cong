@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getTimesheetsByEmployee, getAllTimesheets } from "@/lib/database-mongodb"
+import { getAllTimesheets, getTimesheetsByEmployeeId } from "@/lib/database"
 
 export async function GET(request: Request) {
   try {
@@ -8,11 +8,11 @@ export async function GET(request: Request) {
     const startDate = searchParams.get("startDate")
     const endDate = searchParams.get("endDate")
 
-    let filteredTimesheets = employeeId ? await getTimesheetsByEmployee(employeeId) : await getAllTimesheets()
+    let filteredTimesheets = employeeId ? await getTimesheetsByEmployeeId(employeeId) : await getAllTimesheets()
 
     if (startDate && endDate) {
       filteredTimesheets = filteredTimesheets.filter(
-        (timesheet) => timesheet.date >= new Date(startDate) && timesheet.date <= new Date(endDate),
+        (timesheet) => timesheet.date >= startDate && timesheet.date <= endDate,
       )
     }
 

@@ -1,5 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { findUserById, findTodayTimesheet, updateTimesheet } from "@/lib/database-mongodb"
+import {
+  getAllEmployees,
+  getTodayTimesheet,
+  updateTimesheet,
+  updateUser,
+  calculateTotalHours,
+  calculateSalary,
+} from "@/lib/database"
 import { getSession } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
@@ -14,20 +21,20 @@ export async function POST(request: NextRequest) {
     }
 
     const employeeIdStr = session.userId
-    const employee = await findUserById(employeeIdStr)
+    const employees = await getAllEmployees()
+    const employee = employees.find((emp) => emp.id === employeeIdStr)
     if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })
     }
 
     // Find today's timesheet
-    const today = new Date().toISOString().split("T")[0]
-    const timesheet = await findTodayTimesheet(employeeIdStr, today)
+    const timesheet = await getTodayTimesheet(employeeIdStr)
 
-    if (!timesheet || !timesheet.checkIn) {
+    if (!timesheet || !timesheet.check_in) {
       return NextResponse.json({ error: "Must check in first" }, { status: 400 })
     }
 
-    if (timesheet.checkOut) {
+    if (timesheet.check_out) {
       return NextResponse.json({ error: "Already checked out today" }, { status: 400 })
     }
 
@@ -35,18 +42,17 @@ export async function POST(request: NextRequest) {
     const now = new Date()
     const checkOutTime = now.toTimeString().slice(0, 5)
 
-    const checkInDate = new Date(`${today}T${timesheet.checkIn}:00`)
-    const checkOutDate = new Date(`${today}T${checkOutTime}:00`)
+    const totalHours = calculateTotalHours(timesheet.check_in, checkOutTime)
+    const salary = calculateSalary(totalHours, employee.hourly_rate)
 
-    const totalMinutes = (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60)
-    const totalHours = Math.max(0, totalMinutes / 60 - 1) // Subtract 1 hour lunch break
-    const salary = totalHours * employee.hourlyRate
-
-    const updatedTimesheet = await updateTimesheet(timesheet._id.toString(), {
-      checkOut: checkOutTime,
-      totalHours: Math.round(totalHours * 100) / 100,
+    // Update timesheet
+    const updatedTimesheet = await updateTimesheet(timesheet.id, {
+      check_out: checkOutTime,
+      total_hours: Math.round(totalHours * 100) / 100,
       salary: Math.round(salary),
     })
+
+    await updateUser(employeeIdStr, { is_currently_working: false })
 
     return NextResponse.json({
       success: true,
@@ -54,7 +60,6 @@ export async function POST(request: NextRequest) {
       timesheet: updatedTimesheet,
     })
   } catch (error) {
-    console.error("[v0] Check-out error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

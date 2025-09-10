@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getTimesheetsByEmployee, getEmployeeById } from "@/lib/database-mongodb"
+import { getTimesheetsByEmployeeId, findUserById } from "@/lib/database"
 import { getSession } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -14,12 +14,12 @@ export async function GET(request: NextRequest) {
     }
 
     const employeeIdStr = session.userId
-    const employee = await getEmployeeById(employeeIdStr)
+    const employee = await findUserById(employeeIdStr)
     if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })
     }
 
-    const employeeTimesheets = await getTimesheetsByEmployee(employeeIdStr)
+    const employeeTimesheets = await getTimesheetsByEmployeeId(employeeIdStr)
 
     // This week stats
     const today = new Date()
@@ -36,10 +36,10 @@ export async function GET(request: NextRequest) {
       const date = new Date()
       date.setDate(date.getDate() - i)
       const dateStr = date.toISOString().split("T")[0]
-      const dayTimesheet = employeeTimesheets.find((ts) => ts.date.toISOString().split("T")[0] === dateStr)
+      const dayTimesheet = employeeTimesheets.find((ts) => ts.date === dateStr)
       last7Days.push({
         date: dateStr,
-        hours: dayTimesheet ? dayTimesheet.totalHours : 0,
+        hours: dayTimesheet ? dayTimesheet.total_hours : 0,
       })
     }
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const weekHours = weekTimesheets.reduce((sum, ts) => sum + ts.totalHours, 0)
+    const weekHours = weekTimesheets.reduce((sum, ts) => sum + ts.total_hours, 0)
     const weekSalary = weekTimesheets.reduce((sum, ts) => sum + ts.salary, 0)
     const avgHoursPerDay = weekTimesheets.length > 0 ? weekHours / weekTimesheets.length : 0
     const daysWorkedThisMonth = monthTimesheets.length

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
-import { findUserById } from "@/lib/database-mongodb"
+import { findUserById } from "@/lib/database"
 
 export async function GET() {
   try {
@@ -24,12 +24,12 @@ export async function GET() {
 
     console.log("[v0] Returning user data:", user.name, user.email, user.role)
     return NextResponse.json({
-      id: user._id.toString(),
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       phone: user.phone,
-      hourlyRate: user.hourlyRate,
+      hourlyRate: user.hourly_rate,
     })
   } catch (error) {
     console.error("[v0] Get user error:", error)

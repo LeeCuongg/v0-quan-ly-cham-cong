@@ -1,214 +1,144 @@
+import { createClient } from "@/lib/supabase/server"
+
 // Database connection and models for timesheet management
 export interface Employee {
   id: string
   name: string
   email: string
-  hourlyRate: number
-  totalHoursThisMonth: number
-  isCurrentlyWorking: boolean
-  password?: string
+  hourly_rate: number
+  total_hours_this_month: number
+  is_currently_working: boolean
+  password_hash?: string
   role: "employee" | "manager"
-  isActive: boolean
-  createdAt: string
+  is_active: boolean
+  created_at: string
   phone?: string
 }
 
 export interface Timesheet {
   id: string
-  employeeId: string
-  employeeName: string
+  employee_id: string
   date: string
-  checkIn: string
-  checkOut: string | null
-  totalHours: number
+  check_in: string
+  check_out: string | null
+  total_hours: number
   salary: number
+  created_at?: string
 }
 
 export interface User {
   id: string
   name: string
   email: string
-  password: string
+  password_hash: string
   role: "employee" | "manager"
-  isActive: boolean
-  createdAt: string
+  is_active: boolean
+  created_at: string
   phone?: string
-  hourlyRate: number
+  hourly_rate: number
 }
 
-// Sample Vietnamese employee data
-const sampleEmployees: Employee[] = [
-  {
-    id: "1",
-    name: "Nguyễn Văn An",
-    email: "nguyen.van.an@company.com",
-    hourlyRate: 150000,
-    totalHoursThisMonth: 168,
-    isCurrentlyWorking: true,
-    password: "$2b$10$rOzJqQqQqQqQqQqQqQgQgO", // hashed "emp123"
-    role: "employee",
-    isActive: true,
-    createdAt: "2024-01-01T00:00:00Z",
-    phone: "0901234567",
-  },
-  {
-    id: "2",
-    name: "Trần Thị Bình",
-    email: "tran.thi.binh@company.com",
-    hourlyRate: 180000,
-    totalHoursThisMonth: 172,
-    isCurrentlyWorking: false,
-    password: "$2b$10$rOzJqQqQqQqQqQgQgQgQgO", // hashed "emp123"
-    role: "employee",
-    isActive: true,
-    createdAt: "2024-01-01T00:00:00Z",
-    phone: "0901234568",
-  },
-  {
-    id: "3",
-    name: "Lê Minh Cường",
-    email: "le.minh.cuong@company.com",
-    hourlyRate: 200000,
-    totalHoursThisMonth: 165,
-    isCurrentlyWorking: true,
-    password: "$2b$10$rOzJqQqQqQqQgQgQgQgQgO", // hashed "emp123"
-    role: "employee",
-    isActive: true,
-    createdAt: "2024-01-01T00:00:00Z",
-    phone: "0901234569",
-  },
-  {
-    id: "4",
-    name: "Phạm Thị Dung",
-    email: "pham.thi.dung@company.com",
-    hourlyRate: 175000,
-    totalHoursThisMonth: 170,
-    isCurrentlyWorking: false,
-    password: "$2b$10$rOzJqQqQqQgQgQgQgQgQgO", // hashed "emp123"
-    role: "employee",
-    isActive: true,
-    createdAt: "2024-01-01T00:00:00Z",
-    phone: "0901234570",
-  },
-  {
-    id: "5",
-    name: "Hoàng Văn Em",
-    email: "hoang.van.em@company.com",
-    hourlyRate: 160000,
-    totalHoursThisMonth: 168,
-    isCurrentlyWorking: true,
-    password: "$2b$10$rOzJqQqQqQgQgQgQgQgQgO", // hashed "emp123"
-    role: "employee",
-    isActive: true,
-    createdAt: "2024-01-01T00:00:00Z",
-    phone: "0901234571",
-  },
-]
+export async function findUserByEmail(email: string): Promise<Employee | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("employees").select("*").eq("email", email).eq("is_active", true).single()
 
-const adminUser: Employee = {
-  id: "admin",
-  name: "Quản trị viên",
-  email: "admin@company.com",
-  hourlyRate: 0,
-  totalHoursThisMonth: 0,
-  isCurrentlyWorking: false,
-  password: "$2b$10$adminHashedPassword", // hashed "admin123"
-  role: "manager",
-  isActive: true,
-  createdAt: "2024-01-01T00:00:00Z",
-  phone: "0900000000",
+  if (error || !data) return null
+  return data
 }
 
-// Sample timesheet data
-const sampleTimesheets: Timesheet[] = [
-  {
-    id: "1",
-    employeeId: "1",
-    employeeName: "Nguyễn Văn An",
-    date: "2024-01-15",
-    checkIn: "08:00",
-    checkOut: "17:30",
-    totalHours: 8.5,
-    salary: 1275000,
-  },
-  {
-    id: "2",
-    employeeId: "2",
-    employeeName: "Trần Thị Bình",
-    date: "2024-01-15",
-    checkIn: "08:30",
-    checkOut: "17:00",
-    totalHours: 7.5,
-    salary: 1350000,
-  },
-  {
-    id: "3",
-    employeeId: "3",
-    employeeName: "Lê Minh Cường",
-    date: "2024-01-15",
-    checkIn: "09:00",
-    checkOut: "18:00",
-    totalHours: 8,
-    salary: 1600000,
-  },
-  {
-    id: "4",
-    employeeId: "1",
-    employeeName: "Nguyễn Văn An",
-    date: "2024-01-16",
-    checkIn: "08:15",
-    checkOut: null,
-    totalHours: 0,
-    salary: 0,
-  },
-  {
-    id: "5",
-    employeeId: "4",
-    employeeName: "Phạm Thị Dung",
-    date: "2024-01-16",
-    checkIn: "08:00",
-    checkOut: "16:30",
-    totalHours: 7.5,
-    salary: 1312500,
-  },
-]
+export async function findUserById(id: string): Promise<Employee | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("employees").select("*").eq("id", id).eq("is_active", true).single()
 
-export const employees = [adminUser, ...sampleEmployees]
-export const timesheets = [...sampleTimesheets]
-export { sampleEmployees, sampleTimesheets }
-
-export function findUserByEmail(email: string): Employee | undefined {
-  return employees.find((emp) => emp.email === email && emp.isActive)
+  if (error || !data) return null
+  return data
 }
 
-export function findUserById(id: string): Employee | undefined {
-  return employees.find((emp) => emp.id === id && emp.isActive)
+export async function getAllEmployees(): Promise<Employee[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("employees").select("*").eq("is_active", true).order("name")
+
+  if (error) return []
+  return data || []
 }
 
-export function createUser(userData: Omit<Employee, "id" | "createdAt">): Employee {
-  const newUser: Employee = {
-    ...userData,
-    id: Date.now().toString(),
-    createdAt: new Date().toISOString(),
-  }
-  employees.push(newUser)
-  return newUser
+export async function createUser(userData: Omit<Employee, "id" | "created_at">): Promise<Employee | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("employees").insert([userData]).select().single()
+
+  if (error || !data) return null
+  return data
 }
 
-export function updateUser(id: string, updates: Partial<Employee>): Employee | null {
-  const userIndex = employees.findIndex((emp) => emp.id === id)
-  if (userIndex === -1) return null
+export async function updateUser(id: string, updates: Partial<Employee>): Promise<Employee | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("employees").update(updates).eq("id", id).select().single()
 
-  employees[userIndex] = { ...employees[userIndex], ...updates }
-  return employees[userIndex]
+  if (error || !data) return null
+  return data
 }
 
-export function deleteUser(id: string): boolean {
-  const userIndex = employees.findIndex((emp) => emp.id === id)
-  if (userIndex === -1) return false
+export async function deleteUser(id: string): Promise<boolean> {
+  const supabase = await createClient()
+  const { error } = await supabase.from("employees").update({ is_active: false }).eq("id", id)
 
-  employees.splice(userIndex, 1)
-  return true
+  return !error
+}
+
+export async function getAllTimesheets(): Promise<Timesheet[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("timesheets")
+    .select(`
+      *,
+      employees!inner(name)
+    `)
+    .order("date", { ascending: false })
+
+  if (error) return []
+  return data || []
+}
+
+export async function getTimesheetsByEmployeeId(employeeId: string): Promise<Timesheet[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("timesheets")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .order("date", { ascending: false })
+
+  if (error) return []
+  return data || []
+}
+
+export async function createTimesheet(timesheetData: Omit<Timesheet, "id" | "created_at">): Promise<Timesheet | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("timesheets").insert([timesheetData]).select().single()
+
+  if (error || !data) return null
+  return data
+}
+
+export async function updateTimesheet(id: string, updates: Partial<Timesheet>): Promise<Timesheet | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from("timesheets").update(updates).eq("id", id).select().single()
+
+  if (error || !data) return null
+  return data
+}
+
+export async function getTodayTimesheet(employeeId: string): Promise<Timesheet | null> {
+  const today = new Date().toISOString().split("T")[0]
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("timesheets")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .eq("date", today)
+    .single()
+
+  if (error || !data) return null
+  return data
 }
 
 // Utility functions
@@ -232,4 +162,26 @@ export function formatCurrency(amount: number): string {
     style: "currency",
     currency: "VND",
   }).format(amount)
+}
+
+export const employees: Employee[] = []
+export const timesheets: Timesheet[] = []
+export const sampleEmployees: Employee[] = []
+export const sampleTimesheets: Timesheet[] = []
+
+export async function initializeData() {
+  const allEmployees = await getAllEmployees()
+  const allTimesheets = await getAllTimesheets()
+
+  employees.length = 0
+  employees.push(...allEmployees)
+
+  timesheets.length = 0
+  timesheets.push(...allTimesheets)
+
+  sampleEmployees.length = 0
+  sampleEmployees.push(...allEmployees)
+
+  sampleTimesheets.length = 0
+  sampleTimesheets.push(...allTimesheets)
 }

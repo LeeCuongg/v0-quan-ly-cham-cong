@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession, isManager, hashPassword } from "@/lib/auth"
-import { getAllEmployees, createEmployee, getEmployeeByEmail } from "@/lib/database-mongodb"
+import { getAllEmployees, createUser } from "@/lib/database"
 
 export async function GET() {
   try {
@@ -14,12 +14,12 @@ export async function GET() {
     const userList = employees
       .filter((emp) => emp.role === "employee")
       .map((emp) => ({
-        id: emp._id?.toString() || emp.id,
+        id: emp.id,
         name: emp.name,
         email: emp.email,
-        hourlyRate: emp.hourlyRate,
-        isActive: emp.isActive,
-        createdAt: emp.createdAt,
+        hourlyRate: emp.hourly_rate,
+        isActive: emp.is_active,
+        createdAt: emp.created_at,
         phone: emp.phone,
         role: emp.role,
       }))
@@ -45,32 +45,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Tên, email và mật khẩu là bắt buộc" }, { status: 400 })
     }
 
-    const existingUser = await getEmployeeByEmail(email)
+    // Check email uniqueness
+    const employees = await getAllEmployees()
+    const existingUser = employees.find((emp) => emp.email === email)
     if (existingUser) {
       return NextResponse.json({ error: "Email đã tồn tại" }, { status: 400 })
     }
 
     const hashedPassword = await hashPassword(password)
 
-    const newUser = await createEmployee({
+    const newUser = await createUser({
       name,
       email,
-      password: hashedPassword,
+      password_hash: hashedPassword,
       phone: phone || "",
-      hourlyRate: hourlyRate || 0,
+      hourly_rate: hourlyRate || 0,
       role: role || "employee",
-      isActive: true,
-      totalHoursThisMonth: 0,
-      isCurrentlyWorking: false,
+      is_active: true,
+      total_hours_this_month: 0,
+      is_currently_working: false,
     })
 
+    if (!newUser) {
+      return NextResponse.json({ error: "Không thể tạo người dùng" }, { status: 500 })
+    }
+
     return NextResponse.json({
-      id: newUser._id?.toString() || newUser.id,
+      id: newUser.id,
       name: newUser.name,
       email: newUser.email,
-      hourlyRate: newUser.hourlyRate,
-      isActive: newUser.isActive,
-      createdAt: newUser.createdAt,
+      hourlyRate: newUser.hourly_rate,
+      isActive: newUser.is_active,
+      createdAt: newUser.created_at,
       phone: newUser.phone,
       role: newUser.role,
     })

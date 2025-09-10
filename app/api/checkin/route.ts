@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { findUserById, createTimesheet, findTodayTimesheet } from "@/lib/database-mongodb"
+import { getAllEmployees, getTodayTimesheet, createTimesheet, updateUser } from "@/lib/database"
 import { getSession } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
@@ -14,32 +14,38 @@ export async function POST(request: NextRequest) {
     }
 
     const employeeIdStr = session.userId
-    const employee = await findUserById(employeeIdStr)
+    const employees = await getAllEmployees()
+    const employee = employees.find((emp) => emp.id === employeeIdStr)
     if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })
     }
 
     // Check if already checked in today
-    const today = new Date().toISOString().split("T")[0]
-    const existingTimesheet = await findTodayTimesheet(employeeIdStr, today)
+    const existingTimesheet = await getTodayTimesheet(employeeIdStr)
 
-    if (existingTimesheet && existingTimesheet.checkIn) {
+    if (existingTimesheet && existingTimesheet.check_in) {
       return NextResponse.json({ error: "Already checked in today" }, { status: 400 })
     }
 
     // Create new timesheet entry
     const now = new Date()
     const checkInTime = now.toTimeString().slice(0, 5)
+    const today = new Date().toISOString().split("T")[0]
 
     const newTimesheet = await createTimesheet({
-      employeeId: employeeIdStr,
-      employeeName: employee.name,
-      date: new Date(today),
-      checkIn: checkInTime,
-      checkOut: null,
-      totalHours: 0,
+      employee_id: employeeIdStr,
+      date: today,
+      check_in: checkInTime,
+      check_out: null,
+      total_hours: 0,
       salary: 0,
     })
+
+    if (!newTimesheet) {
+      return NextResponse.json({ error: "Failed to create timesheet" }, { status: 500 })
+    }
+
+    await updateUser(employeeIdStr, { is_currently_working: true })
 
     return NextResponse.json({
       success: true,
@@ -47,7 +53,6 @@ export async function POST(request: NextRequest) {
       timesheet: newTimesheet,
     })
   } catch (error) {
-    console.error("[v0] Check-in error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
