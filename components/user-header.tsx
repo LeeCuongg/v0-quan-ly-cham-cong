@@ -19,6 +19,7 @@ import Link from "next/link"
 export function UserHeader() {
   const { user, logout } = useAuth()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [isOpen, setIsOpen] = useState(false) // Thêm state để control dropdown
 
   if (!user) return null
 
@@ -30,6 +31,7 @@ export function UserHeader() {
       console.error("Logout error:", error)
     } finally {
       setIsLoggingOut(false)
+      setIsOpen(false) // Đóng dropdown sau khi logout
     }
   }
 
@@ -63,35 +65,45 @@ export function UserHeader() {
           </Badge>
         </div>
 
-        <DropdownMenu>
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 h-auto p-2">
+            <Button 
+              variant="ghost" 
+              className="flex items-center gap-2 h-auto p-2 hover:bg-accent"
+              onClick={() => setIsOpen(!isOpen)} // Toggle dropdown
+            >
               <Avatar className="w-8 h-8">
-                <AvatarFallback className="text-xs font-medium">{getInitials(user.name)}</AvatarFallback>
+                <AvatarFallback className="text-xs font-medium bg-primary text-primary-foreground">
+                  {getInitials(user.name)}
+                </AvatarFallback>
               </Avatar>
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
+          <DropdownMenuContent 
+            align="end" 
+            className="w-56 bg-popover border shadow-md z-50"
+            sideOffset={5}
+          >
+            <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
-                <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs w-fit">
+                <p className="text-sm font-medium leading-none">{user.name}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                <Badge variant={getRoleBadgeVariant(user.role)} className="text-xs w-fit mt-1">
                   {getRoleLabel(user.role)}
                 </Badge>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             {user.role === "employee" && (
-              <Link href="/profile">
-                <DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/profile" onClick={() => setIsOpen(false)}>
                   <User className="w-4 h-4 mr-2" />
                   Thông tin cá nhân
-                </DropdownMenuItem>
-              </Link>
+                </Link>
+              </DropdownMenuItem>
             )}
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setIsOpen(false)}>
               <Settings className="w-4 h-4 mr-2" />
               Cài đặt
             </DropdownMenuItem>
@@ -99,7 +111,7 @@ export function UserHeader() {
             <DropdownMenuItem
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="text-destructive focus:text-destructive"
+              className="text-destructive focus:text-destructive cursor-pointer"
             >
               <LogOut className="w-4 h-4 mr-2" />
               {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
