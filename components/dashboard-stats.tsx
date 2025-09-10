@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Clock, DollarSign, UserCheck } from "lucide-react"
-import { formatCurrency } from "@/lib/database"
+import { formatCurrency } from "@/lib/types"
 
 interface DashboardStats {
   totalEmployees: number
