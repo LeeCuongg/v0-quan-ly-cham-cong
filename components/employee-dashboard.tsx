@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/components/auth-provider"
-import { Clock, Calendar, DollarSign, CheckCircle, XCircle, LogIn, User, BarChart3 } from "lucide-react"
+import { Clock, Calendar, DollarSign, CheckCircle, XCircle, LogIn, User, BarChart3, Users, UserCheck, Activity } from "lucide-react"
 import Link from "next/link"
 
 interface EmployeeStats {
@@ -23,9 +23,26 @@ interface CheckinStatus {
   status: "not-checked-in" | "working" | "finished"
 }
 
+interface DashboardStats {
+  totalEmployees: number
+  currentlyWorking: number
+  totalHoursToday: number
+  totalSalaryCost: number
+}
+
+interface RecentActivity {
+  id: string
+  employeeName: string
+  action: string
+  time: string
+  type: "checkin" | "checkout"
+}
+
 export function EmployeeDashboard() {
-  const { user, isEmployee } = useAuth()
+  const { user, isEmployee, isManager } = useAuth()
   const [stats, setStats] = useState<EmployeeStats | null>(null)
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [checkinStatus, setCheckinStatus] = useState<CheckinStatus>({
     isCheckedIn: false,
     status: "not-checked-in",
@@ -35,8 +52,10 @@ export function EmployeeDashboard() {
   useEffect(() => {
     if (isEmployee && user) {
       fetchEmployeeData()
+    } else if (isManager && user) {
+      fetchManagerData()
     }
-  }, [isEmployee, user])
+  }, [isEmployee, isManager, user])
 
   const fetchEmployeeData = async () => {
     try {
@@ -77,6 +96,65 @@ export function EmployeeDashboard() {
     }
   }
 
+  const fetchManagerData = async () => {
+    try {
+      // Fetch dashboard stats
+      const statsResponse = await fetch("/api/dashboard/stats")
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json()
+        setDashboardStats(statsData)
+      }
+
+      // Fetch recent activities from timesheets
+      const today = new Date().toISOString().split("T")[0]
+      const timesheetsResponse = await fetch(`/api/timesheets?startDate=${today}&endDate=${today}`)
+      if (timesheetsResponse.ok) {
+        const timesheetsData = await timesheetsResponse.json()
+        
+        // Transform timesheets to recent activities
+        const activities: RecentActivity[] = []
+        timesheetsData.forEach((timesheet: any) => {
+          if (timesheet.check_in_time) {
+            activities.push({
+              id: `${timesheet.id}-checkin`,
+              employeeName: timesheet.employee_name,
+              action: `đã check-in lúc ${formatTime(timesheet.check_in_time)}`,
+              time: timesheet.check_in_time,
+              type: "checkin"
+            })
+          }
+          if (timesheet.check_out_time) {
+            activities.push({
+              id: `${timesheet.id}-checkout`,
+              employeeName: timesheet.employee_name,
+              action: `đã check-out lúc ${formatTime(timesheet.check_out_time)}`,
+              time: timesheet.check_out_time,
+              type: "checkout"
+            })
+          }
+        })
+
+        // Sort by time and take latest 5
+        activities.sort((a, b) => b.time.localeCompare(a.time))
+        setRecentActivities(activities.slice(0, 5))
+      }
+    } catch (error) {
+      console.error("Error fetching manager data:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatTime = (timeString: string) => {
+    if (timeString.includes('T')) {
+      return new Date(timeString).toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    }
+    return timeString.slice(0, 5)
+  }
+
   const getStatusBadge = () => {
     switch (checkinStatus.status) {
       case "not-checked-in":
@@ -103,47 +181,145 @@ export function EmployeeDashboard() {
     }
   }
 
-  // Only show employee dashboard for employees
-  if (!isEmployee || !user) {
+  // Manager dashboard
+  if (isManager && user) {
     return (
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Quản lý</h1>
-        <p className="text-muted-foreground">Tổng quan hệ thống chấm công và quản lý nhân viên</p>
-
-        {/* Manager content */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-lg border bg-card p-6">
-            <h3 className="text-lg font-semibold text-card-foreground mb-4">Hoạt động gần đây</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                <span className="text-muted-foreground">Nguyễn Văn An đã check-in lúc 08:15</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-2 h-2 bg-accent rounded-full"></div>
-                <span className="text-muted-foreground">Trần Thị Bình đã check-out lúc 17:30</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                <span className="text-muted-foreground">Lê Minh Cường đã check-in lúc 09:00</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border bg-card p-6">
-            <h3 className="text-lg font-semibold text-card-foreground mb-4">Thông báo</h3>
-            <div className="space-y-3">
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">Có 2 nhân viên chưa check-out hôm nay</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">Báo cáo tháng này sẽ được tạo vào ngày 30</p>
-              </div>
-            </div>
-          </div>
+      <div className="space-y-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Quản lý</h1>
+          <p className="text-muted-foreground">Tổng quan hệ thống chấm công và quản lý nhân viên</p>
         </div>
+
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader className="pb-2">
+                  <div className="h-4 bg-muted rounded w-24"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-8 bg-muted rounded w-16"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Real-time Stats */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Tổng nhân viên</CardTitle>
+                  <Users className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats?.totalEmployees || 0}</div>
+                  <p className="text-xs text-muted-foreground">Nhân viên đang hoạt động</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Đang làm việc</CardTitle>
+                  <UserCheck className="h-4 w-4 text-secondary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-secondary">{dashboardStats?.currentlyWorking || 0}</div>
+                  <p className="text-xs text-muted-foreground">Nhân viên hiện tại</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Giờ làm hôm nay</CardTitle>
+                  <Clock className="h-4 w-4 text-accent" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats?.totalHoursToday?.toFixed(1) || '0.0'}h</div>
+                  <p className="text-xs text-muted-foreground">Tổng giờ làm việc</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Chi phí lương</CardTitle>
+                  <DollarSign className="h-4 w-4 text-chart-1" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-chart-1">
+                    {(dashboardStats?.totalSalaryCost || 0).toLocaleString("vi-VN")}đ
+                  </div>
+                  <p className="text-xs text-muted-foreground">Tổng chi phí hôm nay</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Manager content */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-primary" />
+                    Hoạt động gần đây
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {recentActivities.length > 0 ? (
+                      recentActivities.map((activity) => (
+                        <div key={activity.id} className="flex items-center gap-3 text-sm">
+                          <div className={`w-2 h-2 rounded-full ${
+                            activity.type === 'checkin' ? 'bg-secondary' : 'bg-accent'
+                          }`}></div>
+                          <span className="text-muted-foreground">
+                            <span className="font-medium text-foreground">{activity.employeeName}</span> {activity.action}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Không có hoạt động nào hôm nay</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Thông báo</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {dashboardStats?.currentlyWorking && dashboardStats.currentlyWorking > 0 ? (
+                      <div className="p-3 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          Có {dashboardStats.currentlyWorking} nhân viên đang làm việc
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          Hiện tại không có nhân viên nào đang làm việc
+                        </p>
+                      </div>
+                    )}
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        Tổng giờ làm việc hôm nay: {dashboardStats?.totalHoursToday?.toFixed(1) || '0.0'} giờ
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
       </div>
     )
+  }
+
+  // Employee dashboard - existing code...
+  if (!isEmployee || !user) {
+    return null
   }
 
   if (loading) {
