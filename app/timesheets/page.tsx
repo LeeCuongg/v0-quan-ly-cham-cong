@@ -64,17 +64,17 @@ export default function TimesheetsPage() {
   const { toast } = useToast()
 
   useEffect(() => {
-    // Set default dates - current month
-    const now = new Date()
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  // Set default dates - từ ngày 1 đầu tháng đến ngày hiện tại
+  const now = new Date()
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+  const today = new Date() // Ngày hiện tại thay vì cuối tháng
 
-    setStartDate(firstDay.toISOString().split("T")[0])
-    setEndDate(lastDay.toISOString().split("T")[0])
+  setStartDate(firstDay.toISOString().split("T")[0])
+  setEndDate(today.toISOString().split("T")[0]) // Thay đổi từ lastDay thành today
 
-    // Fetch initial data
-    fetchEmployees()
-  }, [])
+  // Fetch initial data
+  fetchEmployees()
+}, [])
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -158,13 +158,13 @@ export default function TimesheetsPage() {
   }
 
   const clearFilters = () => {
-    setSelectedEmployee("all")
-    const now = new Date()
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    setStartDate(firstDay.toISOString().split("T")[0])
-    setEndDate(lastDay.toISOString().split("T")[0])
-  }
+  setSelectedEmployee("all")
+  const now = new Date()
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+  const today = new Date() // Ngày hiện tại
+  setStartDate(firstDay.toISOString().split("T")[0])
+  setEndDate(today.toISOString().split("T")[0]) // Thay đổi từ lastDay thành today
+}
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN", {
