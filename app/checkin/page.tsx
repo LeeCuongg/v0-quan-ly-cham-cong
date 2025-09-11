@@ -44,185 +44,149 @@ export default function CheckinPage() {
       const today = new Date().toISOString().split("T")[0]
       const response = await fetch(`/api/my-timesheets?startDate=${today}&endDate=${today}`)
       const data = await response.json()
+      
+      console.log("[CHECKIN] Today's timesheet data:", data)
 
       if (data.timesheets && data.timesheets.length > 0) {
         const todayTimesheet = data.timesheets[0]
-        if (todayTimesheet.checkIn && !todayTimesheet.checkOut) {
+        
+        // Kiểm tra các trường khác nhau từ database
+        const checkIn = todayTimesheet.check_in_time || todayTimesheet.checkIn
+        const checkOut = todayTimesheet.check_out_time || todayTimesheet.checkOut
+        
+        console.log("[CHECKIN] Check-in:", checkIn, "Check-out:", checkOut)
+        
+        if (checkIn && !checkOut) {
+          // Đang làm việc
           setCheckinStatus({
             isCheckedIn: true,
-            checkInTime: todayTimesheet.checkIn,
+            checkInTime: checkIn,
             status: "working",
           })
-        } else if (todayTimesheet.checkIn && todayTimesheet.checkOut) {
+          console.log("[CHECKIN] Status: Currently working")
+        } else if (checkIn && checkOut) {
+          // Đã hoàn thành
           setCheckinStatus({
             isCheckedIn: false,
-            checkInTime: todayTimesheet.checkIn,
+            checkInTime: checkIn,
             status: "finished",
           })
+          console.log("[CHECKIN] Status: Finished for today")
+        } else {
+          // Chưa check-in
+          setCheckinStatus({
+            isCheckedIn: false,
+            status: "not-checked-in",
+          })
+          console.log("[CHECKIN] Status: Not checked in")
         }
+      } else {
+        // Không có bản ghi nào hôm nay
+        setCheckinStatus({
+          isCheckedIn: false,
+          status: "not-checked-in",
+        })
+        console.log("[CHECKIN] Status: No timesheet for today")
       }
     } catch (error) {
-      console.error("Error checking status:", error)
+      console.error("[CHECKIN] Error checking status:", error)
     }
   }
 
   const handleCheckin = async () => {
-  if (!user) {
-    console.log("[Frontend] No user found")
-    return
-  }
+    if (!user) return
 
-  console.log("[Frontend] Starting checkin process...")
-  console.log("[Frontend] User:", user)
-  console.log("[Frontend] Location:", location)
-
-  setLoading(true)
-  try {
-    const requestBody = {
-      location: location.latitude && location.longitude ? {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        accuracy: location.accuracy
-      } : null,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent
-    }
-
-    console.log("[Frontend] Request body:", requestBody)
-    console.log("[Frontend] Sending POST to /api/checkin...")
-
-    const response = await fetch("/api/checkin", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(requestBody),
-    })
-
-    console.log("[Frontend] Response status:", response.status)
-    console.log("[Frontend] Response headers:", Object.fromEntries(response.headers.entries()))
-
-    const data = await response.json()
-    console.log("[Frontend] Response data:", data)
-
-    if (response.ok) {
-      console.log("[Frontend] Checkin successful")
-      setCheckinStatus({
-        status: "working",
-        canCheckIn: false,
-        canCheckOut: true,
-        checkInTime: data.timesheet.checkIn,
-        timesheet: data.timesheet
+    setLoading(true)
+    try {
+      const response = await fetch("/api/checkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       })
+
+      const data = await response.json()
+      console.log("[CHECKIN] Check-in response:", data)
+
+      if (response.ok) {
+        setCheckinStatus({
+          isCheckedIn: true,
+          checkInTime: data.timesheet.check_in_time || data.timesheet.checkIn,
+          status: "working",
+        })
+        toast({
+          title: "Chấm công thành công!",
+          description: `Bạn đã check-in lúc ${data.timesheet.check_in_time || data.timesheet.checkIn}`,
+        })
+      } else {
+        // Nếu đã check-in rồi, cập nhật trạng thái
+        if (data.error === "Already checked in today" && data.existingTimesheet) {
+          const timesheet = data.existingTimesheet
+          setCheckinStatus({
+            isCheckedIn: true,
+            checkInTime: timesheet.check_in_time || timesheet.checkIn,
+            status: "working",
+          })
+        }
+        toast({
+          title: "Lỗi",
+          description: data.error,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("[CHECKIN] Check-in error:", error)
       toast({
-        title: "✅ Chấm công thành công!",
-        description: data.message,
-      })
-    } else {
-      console.log("[Frontend] Checkin failed:", data.error)
-      toast({
-        title: "Lỗi chấm công",
-        description: data.error,
+        title: "Lỗi",
+        description: "Không thể kết nối đến server",
         variant: "destructive",
       })
+    } finally {
+      setLoading(false)
     }
-  } catch (error) {
-    console.error("[Frontend] Checkin error:", error)
-    toast({
-      title: "Lỗi kết nối",
-      description: "Không thể kết nối đến server",
-      variant: "destructive",
-    })
-  } finally {
-    setLoading(false)
   }
-}
 
   const handleCheckout = async () => {
-  if (!user) {
-    console.log("[Frontend] No user found")
-    return
-  }
+    if (!user) return
 
-  console.log("[Frontend] Starting checkout process...")
-  console.log("[Frontend] Current checkin status:", checkinStatus)
-
-  setLoading(true)
-  try {
-    const requestBody = {
-      location: location.latitude && location.longitude ? {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        accuracy: location.accuracy
-      } : null,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent
-    }
-
-    console.log("[Frontend] Checkout request body:", requestBody)
-    console.log("[Frontend] Sending POST to /api/checkout...")
-
-    const response = await fetch("/api/checkout", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(requestBody),
-    })
-
-    console.log("[Frontend] Checkout response status:", response.status)
-    
-    const data = await response.json()
-    console.log("[Frontend] Checkout response data:", data)
-
-    if (response.ok) {
-      console.log("[Frontend] Checkout successful")
-      setCheckinStatus({
-        status: "finished",
-        canCheckIn: false,
-        canCheckOut: false,
-        checkInTime: checkinStatus.checkInTime,
-        checkOutTime: data.timesheet.checkOut,
-        totalHours: data.timesheet.totalHours,
-        timesheet: data.timesheet
+    setLoading(true)
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       })
-      
-      // Show detailed success message
+
+      const data = await response.json()
+      console.log("[CHECKIN] Check-out response:", data)
+
+      if (response.ok) {
+        setCheckinStatus({
+          isCheckedIn: false,
+          checkInTime: checkinStatus.checkInTime,
+          status: "finished",
+        })
+        toast({
+          title: "Check-out thành công!",
+          description: `Bạn đã hoàn thành ${data.timesheet.total_hours} giờ làm việc`,
+        })
+      } else {
+        toast({
+          title: "Lỗi",
+          description: data.error,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("[CHECKIN] Check-out error:", error)
       toast({
-        title: "✅ Check-out thành công!",
-        description: (
-          <div className="space-y-1">
-            <div>{data.message}</div>
-            {data.summary && (
-              <div className="text-xs mt-2 space-y-1">
-                <div>⏰ {data.summary.checkInTime} - {data.summary.checkOutTime}</div>
-                <div>💰 Lương: {parseInt(data.summary.salary).toLocaleString('vi-VN')}đ</div>
-              </div>
-            )}
-          </div>
-        ),
-      })
-    } else {
-      console.log("[Frontend] Checkout failed:", data.error)
-      toast({
-        title: "Lỗi check-out",
-        description: data.error,
+        title: "Lỗi",
+        description: "Không thể kết nối đến server",
         variant: "destructive",
       })
+    } finally {
+      setLoading(false)
     }
-  } catch (error) {
-    console.error("[Frontend] Checkout error:", error)
-    toast({
-      title: "Lỗi kết nối",
-      description: "Không thể kết nối đến server",
-      variant: "destructive",
-    })
-  } finally {
-    setLoading(false)
   }
-}
 
   const getStatusBadge = () => {
     switch (checkinStatus.status) {
@@ -253,7 +217,6 @@ export default function CheckinPage() {
   return (
     <ProtectedPage requiredRole="employee">
       <main className="flex min-h-screen bg-background">
-        {/* Removed Sidebar component */}
         <div className="flex-1 lg:pl-72">
           <div className="p-6 lg:p-8 pt-16 lg:pt-8">
             <div className="max-w-2xl mx-auto space-y-6">
@@ -291,7 +254,9 @@ export default function CheckinPage() {
                 <CardContent className="text-center space-y-4">
                   {getStatusBadge()}
                   {checkinStatus.checkInTime && (
-                    <p className="text-sm text-muted-foreground">Đã check-in lúc: {checkinStatus.checkInTime}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Đã check-in lúc: {checkinStatus.checkInTime}
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -319,6 +284,27 @@ export default function CheckinPage() {
                   CHECK OUT
                 </Button>
               </div>
+
+              {/* Debug Info - Chỉ hiện khi đang phát triển */}
+              {process.env.NODE_ENV === 'development' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Debug Info</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <pre className="text-sm">
+                      {JSON.stringify(checkinStatus, null, 2)}
+                    </pre>
+                    <Button 
+                      onClick={checkTodayStatus} 
+                      variant="outline" 
+                      className="mt-2"
+                    >
+                      Refresh Status
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
