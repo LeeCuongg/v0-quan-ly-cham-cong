@@ -14,6 +14,7 @@ interface ScheduleEntry {
   checkIn?: string
   checkOut?: string
   totalHours: number
+  salary: number
   status: "present" | "absent" | "partial" | "future"
 }
 
@@ -22,6 +23,7 @@ interface WeeklySchedule {
   weekEnd: string
   entries: ScheduleEntry[]
   totalHours: number
+  totalSalary: number
   expectedHours: number
 }
 
@@ -44,17 +46,25 @@ export default function SchedulePage() {
       const weekStart = getWeekStart(currentWeek)
       const weekEnd = getWeekEnd(currentWeek)
 
+      console.log("[SCHEDULE] Fetching data for week:", weekStart.toISOString().split("T")[0], "to", weekEnd.toISOString().split("T")[0])
+
       const response = await fetch(
         `/api/my-timesheets?startDate=${weekStart.toISOString().split("T")[0]}&endDate=${weekEnd.toISOString().split("T")[0]}`,
       )
 
       if (response.ok) {
         const data = await response.json()
-        const weeklySchedule = generateWeeklySchedule(weekStart, weekEnd, data.timesheets)
+        console.log("[SCHEDULE] API Response:", data)
+        
+        const weeklySchedule = generateWeeklySchedule(weekStart, weekEnd, data.timesheets || [])
+        console.log("[SCHEDULE] Generated schedule:", weeklySchedule)
+        
         setSchedule(weeklySchedule)
+      } else {
+        throw new Error(`HTTP ${response.status}`)
       }
     } catch (error) {
-      console.error("Error fetching schedule:", error)
+      console.error("[SCHEDULE] Error fetching schedule:", error)
       toast({
         title: "Lỗi",
         description: "Không thể tải lịch làm việc",
@@ -70,32 +80,50 @@ export default function SchedulePage() {
     const day = start.getDay()
     const diff = start.getDate() - day + (day === 0 ? -6 : 1) // Monday as first day
     start.setDate(diff)
+    start.setHours(0, 0, 0, 0)
     return start
   }
 
   const getWeekEnd = (date: Date) => {
     const end = getWeekStart(date)
     end.setDate(end.getDate() + 6)
+    end.setHours(23, 59, 59, 999)
     return end
   }
 
   const generateWeeklySchedule = (weekStart: Date, weekEnd: Date, timesheets: any[]): WeeklySchedule => {
     const entries: ScheduleEntry[] = []
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    console.log("[SCHEDULE] Generating schedule with timesheets:", timesheets)
 
     for (let i = 0; i < 7; i++) {
       const currentDate = new Date(weekStart)
       currentDate.setDate(weekStart.getDate() + i)
       const dateStr = currentDate.toISOString().split("T")[0]
 
+      // Tìm timesheet cho ngày này
       const timesheet = timesheets.find((ts) => ts.date === dateStr)
+      console.log("[SCHEDULE] Date:", dateStr, "Timesheet:", timesheet)
 
       let status: ScheduleEntry["status"] = "future"
+      let checkIn: string | undefined
+      let checkOut: string | undefined
+      let totalHours = 0
+      let salary = 0
+
       if (currentDate <= today) {
         if (timesheet) {
-          if (timesheet.checkIn && timesheet.checkOut) {
+          // Lấy dữ liệu từ timesheet
+          checkIn = timesheet.check_in_time || (timesheet.check_in ? new Date(timesheet.check_in).toLocaleTimeString("vi-VN", { hour12: false }).slice(0, 5) : undefined)
+          checkOut = timesheet.check_out_time || (timesheet.check_out ? new Date(timesheet.check_out).toLocaleTimeString("vi-VN", { hour12: false }).slice(0, 5) : undefined)
+          totalHours = timesheet.total_hours || timesheet.hours_worked || 0
+          salary = timesheet.salary || 0
+
+          if (checkIn && checkOut) {
             status = "present"
-          } else if (timesheet.checkIn) {
+          } else if (checkIn) {
             status = "partial"
           } else {
             status = "absent"
@@ -107,14 +135,16 @@ export default function SchedulePage() {
 
       entries.push({
         date: dateStr,
-        checkIn: timesheet?.checkIn,
-        checkOut: timesheet?.checkOut,
-        totalHours: timesheet?.totalHours || 0,
+        checkIn,
+        checkOut,
+        totalHours,
+        salary,
         status,
       })
     }
 
     const totalHours = entries.reduce((sum, entry) => sum + entry.totalHours, 0)
+    const totalSalary = entries.reduce((sum, entry) => sum + entry.salary, 0)
     const expectedHours = 40 // 8 hours * 5 working days
 
     return {
@@ -122,6 +152,7 @@ export default function SchedulePage() {
       weekEnd: weekEnd.toISOString().split("T")[0],
       entries,
       totalHours,
+      totalSalary,
       expectedHours,
     }
   }
@@ -130,6 +161,10 @@ export default function SchedulePage() {
     const newWeek = new Date(currentWeek)
     newWeek.setDate(currentWeek.getDate() + (direction === "next" ? 7 : -7))
     setCurrentWeek(newWeek)
+  }
+
+  const goToCurrentWeek = () => {
+    setCurrentWeek(new Date())
   }
 
   const getStatusBadge = (status: ScheduleEntry["status"]) => {
@@ -168,6 +203,13 @@ export default function SchedulePage() {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
     return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount)
   }
 
   if (loading) {
@@ -214,7 +256,7 @@ export default function SchedulePage() {
                   <Button variant="outline" size="sm" onClick={() => navigateWeek("prev")}>
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentWeek(new Date())}>
+                  <Button variant="outline" size="sm" onClick={goToCurrentWeek}>
                     Hôm nay
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => navigateWeek("next")}>
@@ -227,14 +269,24 @@ export default function SchedulePage() {
 
           {/* Weekly Summary */}
           {schedule && (
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Tổng giờ tuần</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{schedule.totalHours}h</div>
+                  <div className="text-2xl font-bold">{schedule.totalHours.toFixed(1)}h</div>
                   <p className="text-xs text-muted-foreground">Mục tiêu: {schedule.expectedHours}h</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Tổng lương tuần</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(schedule.totalSalary)}</div>
+                  <p className="text-xs text-muted-foreground">Lương theo giờ: {user?.hourlyRate.toLocaleString("vi-VN")}đ</p>
                 </CardContent>
               </Card>
 
@@ -306,7 +358,14 @@ export default function SchedulePage() {
                           <div className="text-muted-foreground">Tổng giờ</div>
                           <div className="font-medium flex items-center gap-1">
                             <Clock className="w-4 h-4" />
-                            {entry.totalHours}h
+                            {entry.totalHours.toFixed(1)}h
+                          </div>
+                        </div>
+
+                        <div className="text-center">
+                          <div className="text-muted-foreground">Lương</div>
+                          <div className="font-medium">
+                            {entry.salary > 0 ? formatCurrency(entry.salary) : "-"}
                           </div>
                         </div>
                       </div>
@@ -340,6 +399,27 @@ export default function SchedulePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Debug Info - Chỉ hiện khi đang phát triển */}
+          {process.env.NODE_ENV === 'development' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Debug Info</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="text-sm bg-muted p-4 rounded overflow-auto">
+                  {JSON.stringify(schedule, null, 2)}
+                </pre>
+                <Button 
+                  onClick={fetchWeeklySchedule} 
+                  variant="outline" 
+                  className="mt-2"
+                >
+                  Refresh Data
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </ProtectedPage>
