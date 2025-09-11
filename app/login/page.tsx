@@ -148,7 +148,7 @@ export default function LoginPage() {
               <p className="text-xs font-medium text-muted-foreground mb-2">Tài khoản demo:</p>
               <div className="space-y-1 text-xs text-muted-foreground">
                 <div>
-                  <span className="font-medium">Quản lý:</span> admin@company.com / admin123
+                  <span className="font-medium">Quản lý:</span> manager@company.com / admin123
                 </div>
                 <div>
                   <span className="font-medium">Nhân viên:</span> nguyen.van.an@company.com / emp123
