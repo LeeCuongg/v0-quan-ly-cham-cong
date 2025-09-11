@@ -77,17 +77,17 @@ export default function SchedulePage() {
 
   const getWeekStart = (date: Date) => {
     const start = new Date(date)
-    start.setHours(0, 0, 0, 0) // Đặt về đầu ngày
     const day = start.getDay()
     const diff = start.getDate() - day + (day === 0 ? -6 : 1) // Monday as first day
     start.setDate(diff)
+    start.setHours(0, 0, 0, 0)
     return start
   }
 
   const getWeekEnd = (date: Date) => {
     const end = getWeekStart(date)
     end.setDate(end.getDate() + 6)
-    end.setHours(23, 59, 59, 999) // Đặt về cuối ngày
+    end.setHours(23, 59, 59, 999)
     return end
   }
 
@@ -95,22 +95,22 @@ export default function SchedulePage() {
     const entries: ScheduleEntry[] = []
     const today = new Date()
     
-    // Đặt về đầu ngày để so sánh chính xác
-    today.setHours(23, 59, 59, 999)
+    // Lấy ngày hiện tại theo timezone local, không dùng UTC
+    const todayStr = today.getFullYear() + '-' + 
+                    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(today.getDate()).padStart(2, '0')
 
+    console.log("[SCHEDULE] Today string:", todayStr)
     console.log("[SCHEDULE] Generating schedule with timesheets:", timesheets)
-    console.log("[SCHEDULE] Today:", today.toISOString().split("T")[0])
 
     for (let i = 0; i < 7; i++) {
       const currentDate = new Date(weekStart)
       currentDate.setDate(weekStart.getDate() + i)
-      currentDate.setHours(0, 0, 0, 0) // Đặt về đầu ngày
-      
       const dateStr = currentDate.toISOString().split("T")[0]
 
       // Tìm timesheet cho ngày này
       const timesheet = timesheets.find((ts) => ts.date === dateStr)
-      console.log("[SCHEDULE] Processing date:", dateStr, "Timesheet found:", !!timesheet)
+      console.log("[SCHEDULE] Processing date:", dateStr, "Today:", todayStr, "Timesheet:", timesheet)
 
       let status: ScheduleEntry["status"] = "future"
       let checkIn: string | undefined
@@ -118,34 +118,35 @@ export default function SchedulePage() {
       let totalHours = 0
       let salary = 0
 
-      // Kiểm tra nếu ngày này đã qua hoặc là hôm nay
-      if (currentDate <= today) {
-        if (timesheet) {
-          // Lấy dữ liệu từ timesheet
-          checkIn = timesheet.check_in_time || (timesheet.check_in ? new Date(timesheet.check_in).toLocaleTimeString("vi-VN", { hour12: false }).slice(0, 5) : undefined)
-          checkOut = timesheet.check_out_time || (timesheet.check_out ? new Date(timesheet.check_out).toLocaleTimeString("vi-VN", { hour12: false }).slice(0, 5) : undefined)
-          totalHours = timesheet.total_hours || timesheet.hours_worked || 0
-          salary = timesheet.salary || 0
+      // Kiểm tra xem ngày này có phải là tương lai không
+      const isFuture = dateStr > todayStr
+      console.log("[SCHEDULE] Date:", dateStr, "Is future:", isFuture)
 
-          console.log("[SCHEDULE] Date:", dateStr, "CheckIn:", checkIn, "CheckOut:", checkOut, "Hours:", totalHours)
+      if (timesheet) {
+        // Có timesheet - lấy dữ liệu từ timesheet
+        checkIn = timesheet.check_in_time || (timesheet.check_in ? new Date(timesheet.check_in).toLocaleTimeString("vi-VN", { hour12: false }).slice(0, 5) : undefined)
+        checkOut = timesheet.check_out_time || (timesheet.check_out ? new Date(timesheet.check_out).toLocaleTimeString("vi-VN", { hour12: false }).slice(0, 5) : undefined)
+        totalHours = timesheet.total_hours || timesheet.hours_worked || 0
+        salary = timesheet.salary || 0
 
-          if (checkIn && checkOut) {
-            status = "present"
-          } else if (checkIn) {
-            status = "partial"
-          } else {
-            status = "absent"
-          }
+        if (checkIn && checkOut) {
+          status = "present" // Đã hoàn thành (có cả check-in và check-out)
+        } else if (checkIn) {
+          status = "partial" // Đang làm việc (chỉ có check-in)
         } else {
-          // Không có timesheet cho ngày đã qua = vắng mặt
-          status = "absent"
+          status = "absent" // Bất thường: có timesheet nhưng không có check-in
         }
-      } else {
-        // Ngày trong tương lai
-        status = "future"
-      }
 
-      console.log("[SCHEDULE] Final status for", dateStr, ":", status)
+        console.log("[SCHEDULE] Timesheet found - CheckIn:", checkIn, "CheckOut:", checkOut, "Status:", status)
+      } else {
+        // Không có timesheet
+        if (isFuture) {
+          status = "future" // Ngày tương lai
+        } else {
+          status = "absent" // Ngày đã qua nhưng không có timesheet = vắng mặt
+        }
+        console.log("[SCHEDULE] No timesheet - Status:", status)
+      }
 
       entries.push({
         date: dateStr,
@@ -192,9 +193,9 @@ export default function SchedulePage() {
         )
       case "partial":
         return (
-          <Badge variant="secondary">
+          <Badge className="bg-yellow-500">
             <AlertCircle className="w-3 h-3 mr-1" />
-            Chưa hoàn thành
+            Đang làm việc
           </Badge>
         )
       case "absent":
@@ -327,7 +328,7 @@ export default function SchedulePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {schedule.entries.filter((e) => e.status === "present").length}/7
+                    {schedule.entries.filter((e) => e.status === "present" || e.status === "partial").length}/7
                   </div>
                   <p className="text-xs text-muted-foreground">Ngày trong tuần</p>
                 </CardContent>
@@ -421,8 +422,13 @@ export default function SchedulePage() {
                 <CardTitle>Debug Info</CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="text-sm bg-muted p-4 rounded overflow-auto">
-                  {JSON.stringify(schedule, null, 2)}
+                <div className="text-sm space-y-2">
+                  <div>Current Date: {new Date().toISOString().split("T")[0]}</div>
+                  <div>Week Start: {schedule?.weekStart}</div>
+                  <div>Week End: {schedule?.weekEnd}</div>
+                </div>
+                <pre className="text-sm bg-muted p-4 rounded overflow-auto mt-4">
+                  {JSON.stringify(schedule?.entries, null, 2)}
                 </pre>
                 <Button 
                   onClick={fetchWeeklySchedule} 
