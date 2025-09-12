@@ -264,7 +264,7 @@ export async function createTimesheet(timesheetData: any): Promise<any | null> {
       // TIME columns
       check_in_time: createTimeFormat(timesheetData.check_in_time),
       check_out_time: null,
-      // TIMESTAMP columns  
+      // TIMESTAMP columns
       check_in: createTimestamp(timesheetData.date, timesheetData.check_in_time),
       check_out: null,
       // Other fields
@@ -276,19 +276,15 @@ export async function createTimesheet(timesheetData: any): Promise<any | null> {
 
     console.log("[DB] Final insert data:", JSON.stringify(insertData, null, 2))
 
-    const { data, error } = await supabase
-      .from("timesheets")
-      .insert([insertData])
-      .select()
-      .single()
-    
+    const { data, error } = await supabase.from("timesheets").insert([insertData]).select().single()
+
     const duration = Date.now() - startTime
 
     if (error) {
       console.error("[DB] ===== SUPABASE ERROR =====")
       console.error("[DB] Error message:", error.message)
       console.error("[DB] Error details:", error.details)
-      console.error("[DB] Error hint:", error.hint) 
+      console.error("[DB] Error hint:", error.hint)
       console.error("[DB] Error code:", error.code)
       console.error("[DB] ============================")
       return null
@@ -298,7 +294,6 @@ export async function createTimesheet(timesheetData: any): Promise<any | null> {
     console.log("[DB] Query duration:", duration + "ms")
     console.log("[DB] ===== CREATE TIMESHEET END =====")
     return data
-    
   } catch (err) {
     console.error("[DB] ===== EXCEPTION ERROR =====")
     console.error("[DB] Exception:", err)
@@ -311,7 +306,7 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
   console.log("[DB] ===== UPDATE TIMESHEET START =====")
   console.log("[DB] Timesheet ID:", id)
   console.log("[DB] Raw updates:", JSON.stringify(updates, null, 2))
-  
+
   try {
     const { createClient } = await import("@/lib/supabase/server")
     const supabase = await createClient()
@@ -324,7 +319,7 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
       // Cho cột check_out_time (TIME format)
       dbUpdates.check_out_time = updates.check_out_time
       // Tạo timestamp cho check_out nếu có date
-      const currentDate = new Date().toISOString().split('T')[0]
+      const currentDate = new Date().toISOString().split("T")[0]
       dbUpdates.check_out = `${currentDate} ${updates.check_out_time}:00+07:00`
     }
 
@@ -359,17 +354,12 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
     console.log("[DB] Mapped DB updates:", JSON.stringify(dbUpdates, null, 2))
 
     // Kiểm tra ID trước khi update
-    if (!id || typeof id !== 'string') {
+    if (!id || typeof id !== "string") {
       console.error("[DB] Invalid timesheet ID:", id)
       return null
     }
 
-    const { data, error } = await supabase
-      .from("timesheets")
-      .update(dbUpdates)
-      .eq("id", id)
-      .select()
-      .single()
+    const { data, error } = await supabase.from("timesheets").update(dbUpdates).eq("id", id).select().single()
 
     if (error) {
       console.error("[DB] ===== SUPABASE UPDATE ERROR =====")
@@ -387,7 +377,6 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
     console.log("[DB] ===========================")
     console.log("[DB] ===== UPDATE TIMESHEET END =====")
     return data
-    
   } catch (error) {
     console.error("[DB] ===== UPDATE EXCEPTION =====")
     console.error("[DB] Exception:", error)
@@ -412,8 +401,10 @@ export async function getTodayTimesheet(employeeId: string): Promise<any | null>
       .select("*")
       .eq("employee_id", employeeId)
       .eq("date", today)
-      .maybeSingle() // Dùng maybeSingle() thay vì single() để không lỗi khi không có data
-    
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
     const duration = Date.now() - startTime
 
     if (error) {
@@ -431,9 +422,87 @@ export async function getTodayTimesheet(employeeId: string): Promise<any | null>
     console.log("[DB] getTodayTimesheet success, found timesheet:", JSON.stringify(data, null, 2))
     console.log("[DB] Query duration:", duration + "ms")
     return data
-    
   } catch (err) {
     console.log("[DB] getTodayTimesheet exception:", err)
+    return null
+  }
+}
+
+export async function getTodayTimesheets(employeeId: string): Promise<any[]> {
+  const today = new Date().toISOString().split("T")[0]
+  console.log("[DB] getTodayTimesheets called with employeeId:", employeeId, "date:", today)
+  const startTime = Date.now()
+
+  try {
+    const { createClient } = await import("@/lib/supabase/server")
+    const supabase = await createClient()
+    console.log("[DB] Supabase client created successfully")
+
+    const { data, error } = await supabase
+      .from("timesheets")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .eq("date", today)
+      .order("created_at", { ascending: true })
+
+    const duration = Date.now() - startTime
+
+    if (error) {
+      console.log("[DB] getTodayTimesheets error:", error)
+      console.log("[DB] Query duration:", duration + "ms")
+      return []
+    }
+
+    console.log("[DB] getTodayTimesheets success, found count:", data?.length || 0)
+    console.log("[DB] Query duration:", duration + "ms")
+    return data || []
+  } catch (err) {
+    console.log("[DB] getTodayTimesheets exception:", err)
+    return []
+  }
+}
+
+export async function getActiveTimesheet(employeeId: string): Promise<any | null> {
+  const today = new Date().toISOString().split("T")[0]
+  console.log("[DB] getActiveTimesheet called with employeeId:", employeeId, "date:", today)
+  const startTime = Date.now()
+
+  try {
+    const { createClient } = await import("@/lib/supabase/server")
+    const supabase = await createClient()
+    console.log("[DB] Supabase client created successfully")
+
+    // Find timesheet with check_in but no check_out for today
+    const { data, error } = await supabase
+      .from("timesheets")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .eq("date", today)
+      .not("check_in_time", "is", null)
+      .is("check_out_time", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const duration = Date.now() - startTime
+
+    if (error) {
+      console.log("[DB] getActiveTimesheet error:", error)
+      console.log("[DB] Query duration:", duration + "ms")
+      return null
+    }
+
+    if (!data) {
+      console.log("[DB] No active timesheet found - employee can check in")
+      console.log("[DB] Query duration:", duration + "ms")
+      return null
+    }
+
+    console.log("[DB] getActiveTimesheet success, found active timesheet:", JSON.stringify(data, null, 2))
+    console.log("[DB] Query duration:", duration + "ms")
+    return data
+  } catch (err) {
+    console.log("[DB] getActiveTimesheet exception:", err)
     return null
   }
 }
@@ -445,14 +514,14 @@ export function calculateTotalHours(checkIn: string, checkOut: string): number {
     // Parse time strings (format: "HH:MM" hoặc "HH:MM:SS")
     const parseTime = (timeStr: string): number => {
       const parts = timeStr.split(":")
-      const hours = parseInt(parts[0])
-      const minutes = parseInt(parts[1])
+      const hours = Number.parseInt(parts[0])
+      const minutes = Number.parseInt(parts[1])
       return hours + minutes / 60
     }
 
     const checkInTime = parseTime(checkIn)
     const checkOutTime = parseTime(checkOut)
-    
+
     console.log("[CALC] Parsed times - checkIn:", checkInTime, "checkOut:", checkOutTime)
 
     let totalHours = checkOutTime - checkInTime
@@ -471,7 +540,7 @@ export function calculateTotalHours(checkIn: string, checkOut: string): number {
 
     const finalHours = Math.max(0, totalHours)
     console.log("[CALC] Final total hours:", finalHours)
-    
+
     return finalHours
   } catch (error) {
     console.error("[CALC] Error calculating hours:", error)
@@ -485,46 +554,39 @@ export function calculateSalary(totalHours: number, hourlyRate: number): number 
   try {
     const regularHours = Math.min(totalHours, 8)
     const overtimeHours = Math.max(0, totalHours - 8)
-    
+
     const regularSalary = regularHours * hourlyRate
     const overtimeSalary = overtimeHours * hourlyRate * 1.5 // 150% for overtime
-    
+
     const totalSalary = regularSalary + overtimeSalary
-    
+
     console.log("[CALC] Salary breakdown:", {
       regularHours,
       overtimeHours,
       regularSalary,
       overtimeSalary,
-      totalSalary
+      totalSalary,
     })
-    
+
     return totalSalary
   } catch (error) {
     console.error("[CALC] Error calculating salary:", error)
     return 0
   }
 }
+import { calculateDailySalary } from "./salary-utils"
 
-import { getSession, decrypt } from "./auth"
-import type { Employee, Timesheet } from "./types"
-import { calculateDailySalary } from './salary-utils'
+export function calculateSalaryWithOvertime(totalHours: number, hourlyRate: number, overtimeHourlyRate = 30000): any {
+  const calculation = calculateDailySalary(totalHours, hourlyRate, overtimeHourlyRate)
 
-export function calculateSalaryWithOvertime(
-  totalHours: number, 
-  hourlyRate: number, 
-  overtimeHourlyRate: number = 30000
-): any {
-  const calculation = calculateDailySalary(totalHours, hourlyRate, overtimeHourlyRate);
-  
   console.log("[SALARY] Overtime calculation:", {
     totalHours,
     hourlyRate,
     overtimeHourlyRate,
-    calculation
-  });
-  
-  return calculation;
+    calculation,
+  })
+
+  return calculation
 }
 
 // Legacy exports for backward compatibility

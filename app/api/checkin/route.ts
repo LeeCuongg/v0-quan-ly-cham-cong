@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getAllEmployees, getTodayTimesheet, createTimesheet, updateUser } from "@/lib/database"
+import { getAllEmployees, getActiveTimesheet, createTimesheet, updateUser } from "@/lib/database"
 import { getSession } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
@@ -38,17 +38,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 })
     }
 
-    console.log("[v0] Step 3: Checking existing timesheet...")
-    const existingTimesheet = await getTodayTimesheet(employeeIdStr)
-    console.log("[v0] Existing timesheet:", existingTimesheet)
+    console.log("[v0] Step 3: Checking for active timesheet...")
+    const activeTimesheet = await getActiveTimesheet(employeeIdStr)
+    console.log("[v0] Active timesheet:", activeTimesheet)
 
     // Check if currently working (has check-in but no check-out)
-    if (existingTimesheet && existingTimesheet.check_in_time && !existingTimesheet.check_out_time) {
+    if (activeTimesheet) {
       console.log("[v0] Already checked in and currently working")
       return NextResponse.json(
         {
           error: "Bạn đã check-in và đang làm việc. Vui lòng check-out trước khi check-in lại.",
-          existingTimesheet,
+          activeTimesheet,
         },
         { status: 400 },
       )

@@ -1,7 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
-import { createClient } from "@/lib/supabase/server"
-import { getAllEmployees, updateTimesheet, updateUser, calculateSalaryWithOvertime } from "@/lib/database"
+import {
+  getAllEmployees,
+  updateTimesheet,
+  updateUser,
+  calculateSalaryWithOvertime,
+  getActiveTimesheet,
+  getTodayTimesheets,
+} from "@/lib/database"
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,26 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("[API] Finding current active session...")
-    const supabase = createClient()
-
-    // Get all today's timesheets for this employee, ordered by check_in_time desc
-    const today = new Date().toISOString().split("T")[0]
-    const { data: todayTimesheets, error: fetchError } = await supabase
-      .from("timesheets")
-      .select("*")
-      .eq("employee_id", employeeIdStr)
-      .eq("date", today)
-      .order("check_in_time", { ascending: false })
-
-    if (fetchError) {
-      console.error("[API] Error fetching timesheets:", fetchError)
-      return NextResponse.json({ error: "Database error" }, { status: 500 })
-    }
-
-    console.log("[API] Today's timesheets:", todayTimesheets)
-
-    // Find the most recent timesheet that has check-in but no check-out
-    const activeTimesheet = todayTimesheets?.find((ts) => ts.check_in_time && !ts.check_out_time)
+    const activeTimesheet = await getActiveTimesheet(employeeIdStr)
 
     if (!activeTimesheet) {
       console.log("[API] No active session found")
@@ -183,6 +170,7 @@ export async function POST(request: NextRequest) {
 
     console.log("[API] Successfully updated timesheet:", updatedTimesheet)
 
+    const todayTimesheets = await getTodayTimesheets(employeeIdStr)
     const remainingActiveSessions = todayTimesheets?.filter(
       (ts) => ts.id !== activeTimesheet.id && ts.check_in_time && !ts.check_out_time,
     )
@@ -258,22 +246,8 @@ export async function GET(request: NextRequest) {
 
     const employeeIdStr = session.userId
 
-    const supabase = createClient()
-    const today = new Date().toISOString().split("T")[0]
-
-    const { data: todayTimesheets, error } = await supabase
-      .from("timesheets")
-      .select("*")
-      .eq("employee_id", employeeIdStr)
-      .eq("date", today)
-      .order("check_in_time", { ascending: false })
-
-    if (error) {
-      console.error("[API] Error fetching timesheets:", error)
-      return NextResponse.json({ error: "Database error" }, { status: 500 })
-    }
-
-    const activeSession = todayTimesheets?.find((ts) => ts.check_in_time && !ts.check_out_time)
+    const todayTimesheets = await getTodayTimesheets(employeeIdStr)
+    const activeSession = await getActiveTimesheet(employeeIdStr)
 
     const hasActiveSession = !!activeSession
     const latestSession = todayTimesheets?.[0]
