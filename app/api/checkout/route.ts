@@ -7,11 +7,19 @@ export async function POST(request: NextRequest) {
   try {
     console.log("[API] ===== CHECKOUT REQUEST START =====")
     
-    // Lấy body request
-    const body = await request.json().catch(e => {
-      console.log("[API] No JSON body or invalid JSON:", e)
-      return {}
-    })
+    // Lấy body request với error handling tốt hơn
+    let body = {}
+    try {
+      const text = await request.text()
+      console.log("[API] Request text:", text)
+      
+      if (text.trim()) {
+        body = JSON.parse(text)
+      }
+    } catch (e) {
+      console.log("[API] Body parsing error (using empty object):", e.message)
+      body = {}
+    }
     
     console.log("[API] Request body:", body)
 
@@ -180,13 +188,16 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[API] ===== CHECKOUT ERROR =====")
     console.error("[API] Error:", error)
-    console.error("[API] Error stack:", error.stack)
+    console.error("[API] Error message:", error?.message)
+    console.error("[API] Error name:", error?.name)
+    console.error("[API] Error stack:", error?.stack)
     console.error("[API] ============================")
     
     return NextResponse.json({ 
       error: "Internal server error",
-      details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: error?.message || "Unknown error",
+      errorType: error?.name || "UnknownError",
+      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
     }, { status: 500 })
   }
 }
