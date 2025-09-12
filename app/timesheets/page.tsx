@@ -64,17 +64,17 @@ export default function TimesheetsPage() {
   const { toast } = useToast()
 
   useEffect(() => {
-  // Set default dates - từ ngày 1 đầu tháng đến ngày hiện tại
-  const now = new Date()
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-  const today = new Date() // Ngày hiện tại thay vì cuối tháng
+    // Set default dates - current month
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
-  setStartDate(firstDay.toISOString().split("T")[0])
-  setEndDate(today.toISOString().split("T")[0]) // Thay đổi từ lastDay thành today
+    setStartDate(firstDay.toLocaleDateString('sv-SE'))
+    setEndDate(lastDay.toLocaleDateString('sv-SE'))
 
-  // Fetch initial data
-  fetchEmployees()
-}, [])
+    // Fetch initial data
+    fetchEmployees()
+  }, [])
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -157,14 +157,44 @@ export default function TimesheetsPage() {
     })
   }
 
+  const setQuickRange = (range: "week" | "month" | "prevWeek" | "prevMonth") => {
+    const now = new Date()
+
+    if (range === "week") {
+      const startOfWeek = new Date(now)
+      startOfWeek.setDate(now.getDate() - now.getDay())
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 6)
+      setStartDate(startOfWeek.toLocaleDateString('sv-SE'))
+      setEndDate(endOfWeek.toLocaleDateString('sv-SE'))
+    } else if (range === "prevWeek") {
+      const startOfWeek = new Date(now)
+      startOfWeek.setDate(now.getDate() - now.getDay() - 7)
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 6)
+      setStartDate(startOfWeek.toLocaleDateString('sv-SE'))
+      setEndDate(endOfWeek.toLocaleDateString('sv-SE'))
+    } else if (range === "month") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      setStartDate(firstDay.toLocaleDateString('sv-SE'))
+      setEndDate(lastDay.toLocaleDateString('sv-SE'))
+    } else if (range === "prevMonth") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const lastDay = new Date(now.getFullYear(), now.getMonth(), 0)
+      setStartDate(firstDay.toLocaleDateString('sv-SE'))
+      setEndDate(lastDay.toLocaleDateString('sv-SE'))
+    }
+  }
+
   const clearFilters = () => {
-  setSelectedEmployee("all")
-  const now = new Date()
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-  const today = new Date() // Ngày hiện tại
-  setStartDate(firstDay.toISOString().split("T")[0])
-  setEndDate(today.toISOString().split("T")[0]) // Thay đổi từ lastDay thành today
-}
+    setSelectedEmployee("all")
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    setStartDate(firstDay.toLocaleDateString('sv-SE'))
+    setEndDate(lastDay.toLocaleDateString('sv-SE'))
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN", {
@@ -292,55 +322,72 @@ export default function TimesheetsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-5">
-              <div className="space-y-2">
-                <Label htmlFor="employee-select">Nhân viên</Label>
-                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                  <SelectTrigger id="employee-select">
-                    <SelectValue placeholder="Chọn nhân viên" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả nhân viên</SelectItem>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="start-date">Từ ngày</Label>
-                <Input 
-                  id="start-date" 
-                  type="date" 
-                  value={startDate} 
-                  onChange={(e) => setStartDate(e.target.value)} 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="end-date">Đến ngày</Label>
-                <Input 
-                  id="end-date" 
-                  type="date" 
-                  value={endDate} 
-                  onChange={(e) => setEndDate(e.target.value)} 
-                />
-              </div>
-
-              <div className="flex items-end">
-                <Button variant="outline" onClick={clearFilters} className="w-full">
-                  Xóa bộ lọc
+            <div className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" onClick={() => setQuickRange("week")}>
+                  Tuần này
+                </Button>
+                <Button variant="outline" onClick={() => setQuickRange("prevWeek")}>
+                  Tuần trước
+                </Button>
+                <Button variant="outline" onClick={() => setQuickRange("month")}>
+                  Tháng này
+                </Button>
+                <Button variant="outline" onClick={() => setQuickRange("prevMonth")}>
+                  Tháng trước
                 </Button>
               </div>
 
-              <div className="flex items-end">
-                <Button onClick={fetchTimesheets} disabled={loading} className="w-full">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  {loading ? "Đang tải..." : "Làm mới"}
-                </Button>
+              <div className="grid gap-4 md:grid-cols-5">
+                <div className="space-y-2">
+                  <Label htmlFor="employee-select">Nhân viên</Label>
+                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                    <SelectTrigger id="employee-select">
+                      <SelectValue placeholder="Chọn nhân viên" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả nhân viên</SelectItem>
+                      {employees.map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id}>
+                          {employee.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="start-date">Từ ngày</Label>
+                  <Input 
+                    id="start-date" 
+                    type="date" 
+                    value={startDate} 
+                    onChange={(e) => setStartDate(e.target.value)} 
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="end-date">Đến ngày</Label>
+                  <Input 
+                    id="end-date" 
+                    type="date" 
+                    value={endDate} 
+                    onChange={(e) => setEndDate(e.target.value)} 
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <Button variant="outline" onClick={clearFilters} className="w-full">
+                    Xóa bộ lọc
+                  </Button>
+                </div>
+
+                <div className="flex items-end">
+                  <Button onClick={fetchTimesheets} disabled={loading} className="w-full">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    {loading ? "Đang tải..." : "Làm mới"}
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
