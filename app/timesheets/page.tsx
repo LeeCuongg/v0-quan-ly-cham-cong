@@ -345,7 +345,7 @@ export default function TimesheetsPage() {
           </CardContent>
         </Card>
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-8 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Tổng bản ghi</CardTitle>
@@ -414,6 +414,17 @@ export default function TimesheetsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tổng lương</CardTitle>
+              <DollarSign className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">{(stats.totalSalary + stats.totalOvertimeSalary).toLocaleString("vi-VN")}đ</div>
+              <p className="text-xs text-muted-foreground">Tổng chi phí</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Hoàn thành</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -462,6 +473,7 @@ export default function TimesheetsPage() {
                       <th className="text-left p-3 font-medium">Giờ overtime</th>
                       <th className="text-left p-3 font-medium">Lương cơ bản</th>
                       <th className="text-left p-3 font-medium">Lương overtime</th>
+                      <th className="text-left p-3 font-medium">Tổng lương</th>
                       <th className="text-left p-3 font-medium">Trạng thái</th>
                     </tr>
                   </thead>
@@ -506,6 +518,11 @@ export default function TimesheetsPage() {
                         <td className="p-3">
                           <div className="font-semibold text-orange-600">
                             {(timesheet.overtime_salary || 0).toLocaleString("vi-VN")}đ
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-semibold text-primary">
+                            {((timesheet.salary || 0) + (timesheet.overtime_salary || 0)).toLocaleString("vi-VN")}đ
                           </div>
                         </td>
                         <td className="p-3">

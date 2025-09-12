@@ -214,7 +214,7 @@ export default function MyTimesheetsPage() {
             <p className="text-muted-foreground">Xem lại thời gian làm việc của bạn</p>
           </div>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Tổng giờ làm</CardTitle>
@@ -258,6 +258,19 @@ export default function MyTimesheetsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-orange-600">{summary.totalOvertimeSalary.toLocaleString("vi-VN")}đ</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Tổng lương</CardTitle>
+                <DollarSign className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">{(summary.totalSalary + summary.totalOvertimeSalary).toLocaleString("vi-VN")}đ</div>
+                <p className="text-xs text-muted-foreground">
+                  Cơ bản + Overtime
+                </p>
               </CardContent>
             </Card>
 
@@ -366,6 +379,7 @@ export default function MyTimesheetsPage() {
                         <th className="text-left p-3 font-medium">Giờ overtime</th>
                         <th className="text-left p-3 font-medium">Lương cơ bản</th>
                         <th className="text-left p-3 font-medium">Lương overtime</th>
+                        <th className="text-left p-3 font-medium">Tổng lương</th>
                         <th className="text-left p-3 font-medium">Trạng thái</th>
                       </tr>
                     </thead>
@@ -408,6 +422,11 @@ export default function MyTimesheetsPage() {
                           <td className="p-3">
                             <div className="font-semibold text-orange-600">
                               {(timesheet.overtime_salary || 0).toLocaleString("vi-VN")}đ
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-primary">
+                              {((timesheet.salary || 0) + (timesheet.overtime_salary || 0)).toLocaleString("vi-VN")}đ
                             </div>
                           </td>
                           <td className="p-3">
