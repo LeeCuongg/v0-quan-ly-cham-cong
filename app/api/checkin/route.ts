@@ -6,6 +6,10 @@ export async function POST(request: NextRequest) {
   console.log("[v0] ===== CHECKIN API CALLED =====")
 
   try {
+    // Parse request body to see what's being sent
+    const body = await request.json()
+    console.log("[v0] Request body:", body)
+
     // Step 1: Get session
     console.log("[v0] Step 1: Getting session...")
     const session = await getSession()
@@ -43,7 +47,8 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Active timesheet:", activeTimesheet)
 
     // Check if currently working (has check-in but no check-out)
-    if (activeTimesheet) {
+    // Only block if actively working, allow multiple check-ins per day
+    if (activeTimesheet && !activeTimesheet.check_out_time) {
       console.log("[v0] Already checked in and currently working")
       return NextResponse.json(
         {
@@ -54,7 +59,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If no active timesheet, employee can check-in (including multiple times per day)
+    console.log("[v0] No active work session found, proceeding with check-in...")
 
     // Step 4: Prepare timesheet data
     console.log("[v0] Step 4: Preparing timesheet data...")
