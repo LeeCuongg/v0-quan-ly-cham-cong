@@ -16,10 +16,36 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const startDate = searchParams.get("startDate")
-    const endDate = searchParams.get("endDate")
+    let startDate = searchParams.get("startDate")
+    let endDate = searchParams.get("endDate")
+    const preset = searchParams.get("preset") // thisMonth, lastMonth, lastWeek
     
-    console.log("[API] Query params:", { startDate, endDate })
+    // Handle preset filters
+    if (preset) {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      
+      switch (preset) {
+        case "thisMonth":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+          break
+        case "lastMonth":
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0]
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0]
+          break
+        case "lastWeek":
+          const lastWeekStart = new Date(today)
+          lastWeekStart.setDate(today.getDate() - today.getDay() - 7) // Start of last week (Sunday)
+          const lastWeekEnd = new Date(lastWeekStart)
+          lastWeekEnd.setDate(lastWeekStart.getDate() + 6) // End of last week (Saturday)
+          startDate = lastWeekStart.toISOString().split('T')[0]
+          endDate = lastWeekEnd.toISOString().split('T')[0]
+          break
+      }
+    }
+    
+    console.log("[API] Query params:", { startDate, endDate, preset })
 
     const employeeIdStr = session.userId
     console.log("[API] Employee ID:", employeeIdStr)
@@ -27,12 +53,19 @@ export async function GET(request: NextRequest) {
     let filteredTimesheets = await getTimesheetsByEmployeeId(employeeIdStr)
     console.log("[API] Raw timesheets from DB:", filteredTimesheets.length)
 
+    // Improved date filtering - ensure proper date comparison
     if (startDate) {
-      filteredTimesheets = filteredTimesheets.filter((ts) => ts.date >= startDate)
+      filteredTimesheets = filteredTimesheets.filter((ts) => {
+        const tsDate = new Date(ts.date).toISOString().split('T')[0]
+        return tsDate >= startDate
+      })
       console.log("[API] After start date filter:", filteredTimesheets.length)
     }
     if (endDate) {
-      filteredTimesheets = filteredTimesheets.filter((ts) => ts.date <= endDate)
+      filteredTimesheets = filteredTimesheets.filter((ts) => {
+        const tsDate = new Date(ts.date).toISOString().split('T')[0]
+        return tsDate <= endDate
+      })
       console.log("[API] After end date filter:", filteredTimesheets.length)
     }
 
