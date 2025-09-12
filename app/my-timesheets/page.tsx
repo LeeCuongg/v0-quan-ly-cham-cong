@@ -22,7 +22,9 @@ interface Timesheet {
   check_out: string | null // timestamp format
   total_hours: number
   hours_worked: number
+  overtime_hours: number
   salary: number
+  overtime_salary: number
   created_at: string
   updated_at: string
 }
@@ -30,6 +32,8 @@ interface Timesheet {
 interface Summary {
   totalHours: number
   totalSalary: number
+  totalOvertimeHours: number
+  totalOvertimeSalary: number
   totalDays: number
   avgHoursPerDay: number
 }
@@ -51,6 +55,8 @@ export default function MyTimesheetsPage() {
   const [summary, setSummary] = useState<Summary>({ 
     totalHours: 0, 
     totalSalary: 0, 
+    totalOvertimeHours: 0,
+    totalOvertimeSalary: 0,
     totalDays: 0,
     avgHoursPerDay: 0
   })
@@ -98,7 +104,14 @@ export default function MyTimesheetsPage() {
 
       if (response.ok) {
         setTimesheets(data.timesheets || [])
-        setSummary(data.summary || { totalHours: 0, totalSalary: 0, totalDays: 0, avgHoursPerDay: 0 })
+        setSummary(data.summary || { 
+          totalHours: 0, 
+          totalSalary: 0, 
+          totalOvertimeHours: 0,
+          totalOvertimeSalary: 0,
+          totalDays: 0, 
+          avgHoursPerDay: 0 
+        })
         
         toast({
           title: "Tải dữ liệu thành công",
@@ -201,7 +214,7 @@ export default function MyTimesheetsPage() {
             <p className="text-muted-foreground">Xem lại thời gian làm việc của bạn</p>
           </div>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Tổng giờ làm</CardTitle>
@@ -217,11 +230,34 @@ export default function MyTimesheetsPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng lương</CardTitle>
+                <CardTitle className="text-sm font-medium">Giờ overtime</CardTitle>
+                <Clock className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">{summary.totalOvertimeHours.toFixed(1)}h</div>
+                <p className="text-xs text-muted-foreground">
+                  Giờ làm thêm
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Lương cơ bản</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summary.totalSalary.toLocaleString("vi-VN")}đ</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Lương overtime</CardTitle>
+                <DollarSign className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">{summary.totalOvertimeSalary.toLocaleString("vi-VN")}đ</div>
               </CardContent>
             </Card>
 
@@ -327,7 +363,9 @@ export default function MyTimesheetsPage() {
                         <th className="text-left p-3 font-medium">Check In</th>
                         <th className="text-left p-3 font-medium">Check Out</th>
                         <th className="text-left p-3 font-medium">Tổng giờ</th>
-                        <th className="text-left p-3 font-medium">Lương</th>
+                        <th className="text-left p-3 font-medium">Giờ overtime</th>
+                        <th className="text-left p-3 font-medium">Lương cơ bản</th>
+                        <th className="text-left p-3 font-medium">Lương overtime</th>
                         <th className="text-left p-3 font-medium">Trạng thái</th>
                       </tr>
                     </thead>
@@ -358,8 +396,18 @@ export default function MyTimesheetsPage() {
                             </div>
                           </td>
                           <td className="p-3">
+                            <div className="font-semibold text-orange-600">
+                              {(timesheet.overtime_hours || 0).toFixed(1)}h
+                            </div>
+                          </td>
+                          <td className="p-3">
                             <div className="font-semibold text-green-600">
                               {(timesheet.salary || 0).toLocaleString("vi-VN")}đ
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-orange-600">
+                              {(timesheet.overtime_salary || 0).toLocaleString("vi-VN")}đ
                             </div>
                           </td>
                           <td className="p-3">

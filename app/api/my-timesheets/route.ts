@@ -39,12 +39,16 @@ export async function GET(request: NextRequest) {
     // Calculate summary
     const totalHours = filteredTimesheets.reduce((sum, ts) => sum + (ts.total_hours || ts.hours_worked || 0), 0)
     const totalSalary = filteredTimesheets.reduce((sum, ts) => sum + (ts.salary || 0), 0)
+    const totalOvertimeHours = filteredTimesheets.reduce((sum, ts) => sum + (ts.overtime_hours || 0), 0)
+    const totalOvertimeSalary = filteredTimesheets.reduce((sum, ts) => sum + (ts.overtime_salary || 0), 0)
     const totalDays = filteredTimesheets.length
     const avgHoursPerDay = totalDays > 0 ? totalHours / totalDays : 0
 
     const summary = {
       totalHours: Math.round(totalHours * 100) / 100,
       totalSalary: Math.round(totalSalary),
+      totalOvertimeHours: Math.round(totalOvertimeHours * 100) / 100,
+      totalOvertimeSalary: Math.round(totalOvertimeSalary),
       totalDays,
       avgHoursPerDay: Math.round(avgHoursPerDay * 100) / 100,
     }

@@ -30,7 +30,9 @@ interface Timesheet {
   check_out: string | null
   total_hours: number
   hours_worked: number
+  overtime_hours: number
   salary: number
+  overtime_salary: number
   created_at: string
   updated_at: string
 }
@@ -38,6 +40,8 @@ interface Timesheet {
 interface TimesheetStats {
   totalHours: number
   totalSalary: number
+  totalOvertimeHours: number
+  totalOvertimeSalary: number
   totalEntries: number
   activeEmployees: number
   completedShifts: number
@@ -49,6 +53,8 @@ export default function TimesheetsPage() {
   const [stats, setStats] = useState<TimesheetStats>({
     totalHours: 0,
     totalSalary: 0,
+    totalOvertimeHours: 0,
+    totalOvertimeSalary: 0,
     totalEntries: 0,
     activeEmployees: 0,
     completedShifts: 0
@@ -145,12 +151,16 @@ export default function TimesheetsPage() {
   const calculateStats = (timesheetData: Timesheet[]) => {
     const totalHours = timesheetData.reduce((sum, ts) => sum + (ts.total_hours || ts.hours_worked || 0), 0)
     const totalSalary = timesheetData.reduce((sum, ts) => sum + (ts.salary || 0), 0)
+    const totalOvertimeHours = timesheetData.reduce((sum, ts) => sum + (ts.overtime_hours || 0), 0)
+    const totalOvertimeSalary = timesheetData.reduce((sum, ts) => sum + (ts.overtime_salary || 0), 0)
     const completedShifts = timesheetData.filter(ts => ts.check_out_time || ts.check_out).length
     const uniqueEmployees = new Set(timesheetData.map(ts => ts.employee_id)).size
 
     setStats({
       totalHours: Math.round(totalHours * 100) / 100,
       totalSalary: Math.round(totalSalary),
+      totalOvertimeHours: Math.round(totalOvertimeHours * 100) / 100,
+      totalOvertimeSalary: Math.round(totalOvertimeSalary),
       totalEntries: timesheetData.length,
       activeEmployees: uniqueEmployees,
       completedShifts
@@ -255,64 +265,6 @@ export default function TimesheetsPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">Quản lý Chấm công</h1>
           <p className="text-muted-foreground">Theo dõi và quản lý thời gian làm việc của tất cả nhân viên</p>
         </div>
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tổng bản ghi</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalEntries}</div>
-              <p className="text-xs text-muted-foreground">Lần chấm công</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nhân viên</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeEmployees}</div>
-              <p className="text-xs text-muted-foreground">Có hoạt động</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tổng giờ</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalHours}h</div>
-              <p className="text-xs text-muted-foreground">Thời gian làm việc</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tổng lương</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalSalary.toLocaleString("vi-VN")}đ</div>
-              <p className="text-xs text-muted-foreground">Chi phí nhân công</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Hoàn thành</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completedShifts}</div>
-              <p className="text-xs text-muted-foreground">Ca làm việc</p>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Filters */}
         <Card className="mb-6">
           <CardHeader>
@@ -392,6 +344,87 @@ export default function TimesheetsPage() {
             </div>
           </CardContent>
         </Card>
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tổng bản ghi</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalEntries}</div>
+              <p className="text-xs text-muted-foreground">Lần chấm công</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Nhân viên</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.activeEmployees}</div>
+              <p className="text-xs text-muted-foreground">Có hoạt động</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tổng giờ</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalHours}h</div>
+              <p className="text-xs text-muted-foreground">Thời gian làm việc</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Giờ overtime</CardTitle>
+              <Clock className="h-4 w-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{stats.totalOvertimeHours}h</div>
+              <p className="text-xs text-muted-foreground">Giờ làm thêm</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Lương cơ bản</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalSalary.toLocaleString("vi-VN")}đ</div>
+              <p className="text-xs text-muted-foreground">Chi phí nhân công</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Lương overtime</CardTitle>
+              <DollarSign className="h-4 w-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{stats.totalOvertimeSalary.toLocaleString("vi-VN")}đ</div>
+              <p className="text-xs text-muted-foreground">Chi phí overtime</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Hoàn thành</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.completedShifts}</div>
+              <p className="text-xs text-muted-foreground">Ca làm việc</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        
 
         {/* Timesheets Table */}
         <Card>
@@ -426,7 +459,9 @@ export default function TimesheetsPage() {
                       <th className="text-left p-3 font-medium">Check In</th>
                       <th className="text-left p-3 font-medium">Check Out</th>
                       <th className="text-left p-3 font-medium">Tổng giờ</th>
-                      <th className="text-left p-3 font-medium">Lương</th>
+                      <th className="text-left p-3 font-medium">Giờ overtime</th>
+                      <th className="text-left p-3 font-medium">Lương cơ bản</th>
+                      <th className="text-left p-3 font-medium">Lương overtime</th>
                       <th className="text-left p-3 font-medium">Trạng thái</th>
                     </tr>
                   </thead>
@@ -459,8 +494,18 @@ export default function TimesheetsPage() {
                           </div>
                         </td>
                         <td className="p-3">
+                          <div className="font-semibold text-orange-600">
+                            {(timesheet.overtime_hours || 0).toFixed(1)}h
+                          </div>
+                        </td>
+                        <td className="p-3">
                           <div className="font-semibold text-green-600">
                             {(timesheet.salary || 0).toLocaleString("vi-VN")}đ
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-semibold text-orange-600">
+                            {(timesheet.overtime_salary || 0).toLocaleString("vi-VN")}đ
                           </div>
                         </td>
                         <td className="p-3">
@@ -510,25 +555,21 @@ export default function TimesheetsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Tổng chi phí:</span>
+                  <span className="text-sm">Tổng chi phí cơ bản:</span>
                   <span className="font-bold text-green-600">{stats.totalSalary.toLocaleString("vi-VN")}đ</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                  <span className="text-sm">Tổng chi phí overtime:</span>
+                  <span className="font-bold text-orange-600">{stats.totalOvertimeSalary.toLocaleString("vi-VN")}đ</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                  <span className="text-sm">Tổng chi phí:</span>
+                  <span className="font-bold text-primary">{(stats.totalSalary + stats.totalOvertimeSalary).toLocaleString("vi-VN")}đ</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                   <span className="text-sm">Chi phí/giờ trung bình:</span>
                   <span className="font-bold">
-                    {stats.totalHours > 0 ? Math.round(stats.totalSalary / stats.totalHours).toLocaleString("vi-VN") : 0}đ
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Chi phí/nhân viên:</span>
-                  <span className="font-bold">
-                    {stats.activeEmployees > 0 ? Math.round(stats.totalSalary / stats.activeEmployees).toLocaleString("vi-VN") : 0}đ
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Giờ/ca trung bình:</span>
-                  <span className="font-bold text-blue-600">
-                    {stats.totalEntries > 0 ? (stats.totalHours / stats.totalEntries).toFixed(1) : 0}h
+                    {stats.totalHours > 0 ? Math.round((stats.totalSalary + stats.totalOvertimeSalary) / (stats.totalHours + stats.totalOvertimeHours)).toLocaleString("vi-VN") : 0}đ
                   </span>
                 </div>
               </CardContent>
