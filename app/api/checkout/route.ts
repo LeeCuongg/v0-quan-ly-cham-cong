@@ -137,29 +137,61 @@ export async function POST(request: NextRequest) {
     }
     
     console.log("[API] Update data:", updateData)
+    console.log("[API] Timesheet ID to update:", timesheet.id)
 
-    // Cập nhật bản ghi chấm công
+    // Cập nhật bản ghi chấm công với error handling chi tiết
     console.log("[API] Updating timesheet...")
-    const updatedTimesheet = await updateTimesheet(timesheet.id, updateData)
-    console.log("[API] Updated timesheet result:", updatedTimesheet)
-
-    if (!updatedTimesheet) {
-      console.log("[API] Failed to update timesheet")
+    let updatedTimesheet
+    try {
+      updatedTimesheet = await updateTimesheet(timesheet.id, updateData)
+      console.log("[API] Updated timesheet result:", updatedTimesheet)
+    } catch (updateError) {
+      console.error("[API] Timesheet update error:", updateError)
+      console.error("[API] Update error details:", {
+        timesheetId: timesheet.id,
+        updateData,
+        errorMessage: updateError?.message,
+        errorStack: updateError?.stack
+      })
+      
       return NextResponse.json({ 
-        error: "Không thể cập nhật bản ghi chấm công" 
+        error: "Lỗi cập nhật bản ghi chấm công: " + (updateError?.message || "Unknown error"),
+        details: {
+          timesheetId: timesheet.id,
+          updateData,
+          originalError: updateError?.message
+        }
       }, { status: 500 })
     }
 
-    // Cập nhật trạng thái nhân viên
+    if (!updatedTimesheet) {
+      console.log("[API] Failed to update timesheet - null result")
+      return NextResponse.json({ 
+        error: "Không thể cập nhật bản ghi chấm công - kết quả null",
+        details: {
+          timesheetId: timesheet.id,
+          updateData
+        }
+      }, { status: 500 })
+    }
+
+    // Cập nhật trạng thái nhân viên với error handling
     console.log("[API] Updating employee working status...")
     const employeeUpdateData = { 
       is_currently_working: false,
-      total_hours_this_month: employee.total_hours_this_month + totalHours
+      total_hours_this_month: (employee.total_hours_this_month || 0) + totalHours
     }
     console.log("[API] Employee update data:", employeeUpdateData)
     
-    const updateResult = await updateUser(employeeIdStr, employeeUpdateData)
-    console.log("[API] Employee update result:", updateResult)
+    let updateResult
+    try {
+      updateResult = await updateUser(employeeIdStr, employeeUpdateData)
+      console.log("[API] Employee update result:", updateResult)
+    } catch (employeeUpdateError) {
+      console.error("[API] Employee update error:", employeeUpdateError)
+      // Không fail checkout nếu update employee thất bại, chỉ log warning
+      console.warn("[API] Warning: Employee status update failed, but checkout succeeded")
+    }
 
     const response = {
       success: true,
