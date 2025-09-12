@@ -68,8 +68,8 @@ export default function MyTimesheetsPage() {
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
-    setStartDate(firstDay.toISOString().split("T")[0])
-    setEndDate(lastDay.toISOString().split("T")[0])
+    setStartDate(firstDay.toLocaleDateString('sv-SE'))
+    setEndDate(lastDay.toLocaleDateString('sv-SE'))
   }, [])
 
   useEffect(() => {
@@ -127,25 +127,25 @@ export default function MyTimesheetsPage() {
       startOfWeek.setDate(now.getDate() - now.getDay())
       const endOfWeek = new Date(startOfWeek)
       endOfWeek.setDate(startOfWeek.getDate() + 6)
-      setStartDate(startOfWeek.toISOString().split("T")[0])
-      setEndDate(endOfWeek.toISOString().split("T")[0])
+      setStartDate(startOfWeek.toLocaleDateString('sv-SE'))
+      setEndDate(endOfWeek.toLocaleDateString('sv-SE'))
     } else if (range === "prevWeek") {
       const startOfWeek = new Date(now)
       startOfWeek.setDate(now.getDate() - now.getDay() - 7)
       const endOfWeek = new Date(startOfWeek)
       endOfWeek.setDate(startOfWeek.getDate() + 6)
-      setStartDate(startOfWeek.toISOString().split("T")[0])
-      setEndDate(endOfWeek.toISOString().split("T")[0])
+      setStartDate(startOfWeek.toLocaleDateString('sv-SE'))
+      setEndDate(endOfWeek.toLocaleDateString('sv-SE'))
     } else if (range === "month") {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      setStartDate(firstDay.toISOString().split("T")[0])
-      setEndDate(lastDay.toISOString().split("T")[0])
+      setStartDate(firstDay.toLocaleDateString('sv-SE'))
+      setEndDate(lastDay.toLocaleDateString('sv-SE'))
     } else if (range === "prevMonth") {
       const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1)
       const lastDay = new Date(now.getFullYear(), now.getMonth(), 0)
-      setStartDate(firstDay.toISOString().split("T")[0])
-      setEndDate(lastDay.toISOString().split("T")[0])
+      setStartDate(firstDay.toLocaleDateString('sv-SE'))
+      setEndDate(lastDay.toLocaleDateString('sv-SE'))
     }
   }
 
