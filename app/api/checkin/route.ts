@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     const timesheetData = {
       employee_id: employeeIdStr,
-      date: today,
+      date: today, // Giữ nguyên date format
       check_in_time: checkInTime,
       check_out_time: null,
       total_hours: 0,
