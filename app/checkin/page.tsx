@@ -284,27 +284,6 @@ export default function CheckinPage() {
                   CHECK OUT
                 </Button>
               </div>
-
-              {/* Debug Info - Chỉ hiện khi đang phát triển */}
-              {process.env.NODE_ENV === 'development' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Debug Info</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="text-sm">
-                      {JSON.stringify(checkinStatus, null, 2)}
-                    </pre>
-                    <Button 
-                      onClick={checkTodayStatus} 
-                      variant="outline" 
-                      className="mt-2"
-                    >
-                      Refresh Status
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
             </div>
           </div>
         </div>

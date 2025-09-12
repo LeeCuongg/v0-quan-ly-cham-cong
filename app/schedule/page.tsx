@@ -414,32 +414,6 @@ export default function SchedulePage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Debug Info - Chỉ hiện khi đang phát triển */}
-          {process.env.NODE_ENV === 'development' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Debug Info</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm space-y-2">
-                  <div>Current Date: {new Date().toISOString().split("T")[0]}</div>
-                  <div>Week Start: {schedule?.weekStart}</div>
-                  <div>Week End: {schedule?.weekEnd}</div>
-                </div>
-                <pre className="text-sm bg-muted p-4 rounded overflow-auto mt-4">
-                  {JSON.stringify(schedule?.entries, null, 2)}
-                </pre>
-                <Button 
-                  onClick={fetchWeeklySchedule} 
-                  variant="outline" 
-                  className="mt-2"
-                >
-                  Refresh Data
-                </Button>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </main>
     </ProtectedPage>

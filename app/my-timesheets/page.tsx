@@ -186,24 +186,6 @@ export default function MyTimesheetsPage() {
             <h1 className="text-3xl font-bold text-foreground">Lịch sử chấm công</h1>
             <p className="text-muted-foreground">Xem lại thời gian làm việc của bạn</p>
           </div>
-
-          {/* Debug Panel (Remove after testing) */}
-          {debugData && (
-            <Card className="bg-yellow-50 border-yellow-200">
-              <CardHeader>
-                <CardTitle className="text-sm">🐛 Debug Info</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-xs space-y-2">
-                  <p><strong>API Response:</strong> {JSON.stringify(debugData, null, 2)}</p>
-                  <p><strong>Timesheets Count:</strong> {timesheets.length}</p>
-                  <p><strong>Loading:</strong> {loading.toString()}</p>
-                  <p><strong>User:</strong> {user?.name} ({user?.email})</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>

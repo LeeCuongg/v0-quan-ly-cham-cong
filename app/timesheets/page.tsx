@@ -225,25 +225,6 @@ export default function TimesheetsPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">Quản lý Chấm công</h1>
           <p className="text-muted-foreground">Theo dõi và quản lý thời gian làm việc của tất cả nhân viên</p>
         </div>
-
-        {/* Debug Panel (Remove after testing) */}
-        {debugData && (
-          <Card className="mb-6 bg-yellow-50 border-yellow-200">
-            <CardHeader>
-              <CardTitle className="text-sm">🐛 Debug Info</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xs space-y-2">
-                <p><strong>Timesheets Count:</strong> {timesheets.length}</p>
-                <p><strong>Employees Count:</strong> {employees.length}</p>
-                <p><strong>Selected Employee:</strong> {selectedEmployee}</p>
-                <p><strong>Date Range:</strong> {startDate} - {endDate}</p>
-                <p><strong>Loading:</strong> {loading.toString()}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
           <Card>
