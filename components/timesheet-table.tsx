@@ -1,226 +1,134 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+"use cliinterface TimesheetWithOvertime {
+  id: string;
+  employee_name: string;
+  date: string;
+  check_in_time: string;
+  check_out_time: string | null;
+  total_hours: number;
+  regular_hours: number;
+  overtime_hours: number;
+  regular_pay: number;
+  overtime_pay: number;
+  salary: number;
+  overtime_rate: number;
+}{ useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Clock, Filter, Download } from "lucide-react"
-import { type Timesheet, type Employee, formatCurrency } from "@/lib/types"
-import { useToast } from "@/hooks/use-toast"
+import { Badge } from "@/components/ui/badge"
+import { Clock, DollarSign } from "lucide-react"
+
+interface TimesheetWithOvertime {
+  id: string
+  employee_name: string
+  date: string
+  check_in_time: string
+  check_out_time: string | null
+  total_hours: number
+  regular_hours: number
+  overtime_hours: number
+  regular_pay: number
+  overtime_pay: number
+  salary: number
+  isNightShift?: boolean
+  isHoliday?: boolean
+}
 
 export function TimesheetTable() {
-  const [timesheets, setTimesheets] = useState<Timesheet[]>([])
-  const [employees, setEmployees] = useState<Employee[]>([])
+  const [timesheets, setTimesheets] = useState<TimesheetWithOvertime[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("all")
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
-  const { toast } = useToast()
 
   useEffect(() => {
-    fetchEmployees()
     fetchTimesheets()
   }, [])
 
-  useEffect(() => {
-    fetchTimesheets()
-  }, [selectedEmployee, startDate, endDate])
-
-  const fetchEmployees = async () => {
-    try {
-      const response = await fetch("/api/employees")
-      const data = await response.json()
-      setEmployees(data)
-    } catch (error) {
-      console.error("Failed to fetch employees:", error)
-    }
-  }
-
   const fetchTimesheets = async () => {
     try {
-      const params = new URLSearchParams()
-      if (selectedEmployee !== "all") {
-        params.append("employeeId", selectedEmployee)
+      const response = await fetch("/api/timesheets")
+      if (response.ok) {
+        const data = await response.json()
+        setTimesheets(data)
       }
-      if (startDate) {
-        params.append("startDate", startDate)
-      }
-      if (endDate) {
-        params.append("endDate", endDate)
-      }
-
-      const response = await fetch(`/api/timesheets?${params.toString()}`)
-      const data = await response.json()
-      setTimesheets(data)
     } catch (error) {
-      console.error("Failed to fetch timesheets:", error)
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải dữ liệu chấm công",
-        variant: "destructive",
-      })
+      console.error("Error fetching timesheets:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  const clearFilters = () => {
-    setSelectedEmployee("all")
-    setStartDate("")
-    setEndDate("")
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    })
-  }
-
-  const formatTime = (timeString: string | null) => {
-    if (!timeString) return "Chưa check-out"
-    return timeString
-  }
-
   const getStatusBadge = (checkOut: string | null) => {
     if (!checkOut) {
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary">
-          Đang làm việc
-        </span>
-      )
+      return <Badge variant="destructive">Đang làm</Badge>
     }
-    return (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-        Hoàn thành
-      </span>
-    )
+    return <Badge variant="default">Hoàn thành</Badge>
   }
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Quản lý Chấm công
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-4">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="flex space-x-4">
-                <div className="h-4 bg-muted rounded w-32"></div>
-                <div className="h-4 bg-muted rounded w-24"></div>
-                <div className="h-4 bg-muted rounded w-20"></div>
-                <div className="h-4 bg-muted rounded w-20"></div>
-                <div className="h-4 bg-muted rounded w-16"></div>
-                <div className="h-4 bg-muted rounded w-24"></div>
-                <div className="h-4 bg-muted rounded w-20"></div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    )
+    return <div>Đang tải dữ liệu...</div>
   }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-primary" />
-          Quản lý Chấm công
+          <Clock className="h-5 w-5" />
+          Quản lý Chấm công (Ca 10 tiếng)
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Filters */}
-        <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Bộ lọc</span>
-          </div>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <Label htmlFor="employee-select">Nhân viên</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger id="employee-select">
-                  <SelectValue placeholder="Chọn nhân viên" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả nhân viên</SelectItem>
-                  {employees.map((employee) => (
-                    <SelectItem key={employee.id} value={employee.id}>
-                      {employee.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="start-date">Từ ngày</Label>
-              <Input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="end-date">Đến ngày</Label>
-              <Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            </div>
-            <div className="flex items-end">
-              <Button variant="outline" onClick={clearFilters} className="w-full bg-transparent">
-                Xóa bộ lọc
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Results Summary */}
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">Hiển thị {timesheets.length} bản ghi chấm công</p>
-          <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-            <Download className="h-4 w-4" />
-            Xuất Excel
-          </Button>
-        </div>
-
-        {/* Timesheet Table */}
+        {/* Enhanced Table with Overtime */}
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nhân viên</TableHead>
                 <TableHead>Ngày</TableHead>
-                <TableHead>Check In</TableHead>
-                <TableHead>Check Out</TableHead>
+                <TableHead>Giờ vào</TableHead>
+                <TableHead>Giờ ra</TableHead>
                 <TableHead>Tổng giờ</TableHead>
-                <TableHead>Lương</TableHead>
+                <TableHead>Giờ thường</TableHead>
+                <TableHead className="text-orange-600">Giờ ngoài giờ</TableHead>
+                <TableHead>Lương thường</TableHead>
+                <TableHead className="text-orange-600">Lương overtime</TableHead>
+                <TableHead className="text-orange-600">Hệ số OT</TableHead>
+                <TableHead className="font-semibold">Tổng lương</TableHead>
                 <TableHead>Trạng thái</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {timesheets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                     Không có dữ liệu chấm công
                   </TableCell>
                 </TableRow>
               ) : (
                 timesheets.map((timesheet) => (
                   <TableRow key={timesheet.id}>
-                    <TableCell className="font-medium">{timesheet.employeeName}</TableCell>
-                    <TableCell>{formatDate(timesheet.date)}</TableCell>
-                    <TableCell className="font-mono">{timesheet.checkIn}</TableCell>
-                    <TableCell className="font-mono">{formatTime(timesheet.checkOut)}</TableCell>
-                    <TableCell className="font-semibold">
-                      {timesheet.totalHours > 0 ? `${timesheet.totalHours}h` : "-"}
+                    <TableCell className="font-medium">{timesheet.employee_name}</TableCell>
+                    <TableCell>{timesheet.date}</TableCell>
+                    <TableCell>{timesheet.check_in_time}</TableCell>
+                    <TableCell>{timesheet.check_out_time || "Đang làm"}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        {timesheet.total_hours}h
+                      </div>
                     </TableCell>
-                    <TableCell className="font-semibold">
-                      {timesheet.salary > 0 ? formatCurrency(timesheet.salary) : "-"}
+                    <TableCell>{timesheet.regular_hours}h</TableCell>
+                    <TableCell className="text-orange-600 font-medium">
+                      {timesheet.overtime_hours > 0 ? `${timesheet.overtime_hours}h` : '-'}
                     </TableCell>
-                    <TableCell>{getStatusBadge(timesheet.checkOut)}</TableCell>
+                    <TableCell>{timesheet.regular_pay?.toLocaleString('vi-VN')}đ</TableCell>
+                    <TableCell className="text-orange-600 font-medium">
+                      {timesheet.overtime_pay > 0 ? `${timesheet.overtime_pay?.toLocaleString('vi-VN')}đ` : '-'}
+                    </TableCell>
+                    <TableCell className="text-orange-600 font-medium">
+                      {timesheet.overtime_rate}x
+                    </TableCell>
+                    <TableCell className="font-semibold text-green-600">
+                      {timesheet.salary?.toLocaleString('vi-VN')}đ
+                    </TableCell>
+                    <TableCell>{getStatusBadge(timesheet.check_out_time)}</TableCell>
                   </TableRow>
                 ))
               )}
@@ -228,25 +136,31 @@ export function TimesheetTable() {
           </Table>
         </div>
 
-        {/* Summary Statistics */}
+        {/* Enhanced Summary Statistics */}
         {timesheets.length > 0 && (
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-4">
             <div className="p-4 bg-card rounded-lg border">
-              <div className="text-sm text-muted-foreground">Tổng giờ làm việc</div>
+              <div className="text-sm text-muted-foreground">Tổng giờ thường</div>
               <div className="text-2xl font-bold text-primary">
-                {timesheets.reduce((sum, t) => sum + t.totalHours, 0).toFixed(1)}h
+                {timesheets.reduce((sum, t) => sum + (t.regular_hours || 0), 0).toFixed(1)}h
+              </div>
+            </div>
+            <div className="p-4 bg-card rounded-lg border">
+              <div className="text-sm text-muted-foreground">Tổng giờ overtime</div>
+              <div className="text-2xl font-bold text-orange-600">
+                {timesheets.reduce((sum, t) => sum + (t.overtime_hours || 0), 0).toFixed(1)}h
+              </div>
+            </div>
+            <div className="p-4 bg-card rounded-lg border">
+              <div className="text-sm text-muted-foreground">Lương overtime</div>
+              <div className="text-2xl font-bold text-orange-600">
+                {timesheets.reduce((sum, t) => sum + (t.overtime_pay || 0), 0).toLocaleString("vi-VN")}đ
               </div>
             </div>
             <div className="p-4 bg-card rounded-lg border">
               <div className="text-sm text-muted-foreground">Tổng chi phí lương</div>
               <div className="text-2xl font-bold text-secondary">
-                {formatCurrency(timesheets.reduce((sum, t) => sum + t.salary, 0))}
-              </div>
-            </div>
-            <div className="p-4 bg-card rounded-lg border">
-              <div className="text-sm text-muted-foreground">Số ca làm việc</div>
-              <div className="text-2xl font-bold text-accent">
-                {timesheets.filter((t) => t.checkOut !== null).length}
+                {timesheets.reduce((sum, t) => sum + (t.salary || 0), 0).toLocaleString("vi-VN")}đ
               </div>
             </div>
           </div>

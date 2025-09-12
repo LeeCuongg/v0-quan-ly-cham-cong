@@ -311,65 +311,43 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
   console.log("[DB] ===== UPDATE TIMESHEET START =====")
   console.log("[DB] Timesheet ID:", id)
   console.log("[DB] Updates:", JSON.stringify(updates, null, 2))
-  const startTime = Date.now()
-
+  
   try {
     const { createClient } = await import("@/lib/supabase/server")
     const supabase = await createClient()
-    console.log("[DB] Supabase client created successfully")
 
-    // Chuẩn hóa dữ liệu update
-    const mappedUpdates: any = {
-      total_hours: updates.total_hours,
-      salary: updates.salary,
+    // Nếu có total_hours và hourly_rate, tính toán overtime
+    if (updates.total_hours && updates.hourly_rate) {
+      const salaryCalc = calculateSalaryWithOvertime(
+        updates.total_hours,
+        updates.hourly_rate,
+        updates.overtime_rate || 1.5
+      );
+
+      // Cập nhật với thông tin overtime
+      updates.regular_hours = salaryCalc.regularHours;
+      updates.overtime_hours = salaryCalc.overtimeHours;
+      updates.regular_pay = salaryCalc.regularPay;
+      updates.overtime_pay = salaryCalc.overtimePay;
+      updates.salary = salaryCalc.totalPay;
     }
-
-    // Nếu có check_out_time, tạo cả TIME và TIMESTAMP format
-    if (updates.check_out_time || updates.check_out) {
-      const checkOutTime = updates.check_out_time || updates.check_out
-      
-      // Lấy thông tin timesheet hiện tại để có date
-      const { data: currentTimesheet } = await supabase
-        .from("timesheets")
-        .select("date")
-        .eq("id", id)
-        .single()
-
-      if (currentTimesheet) {
-        mappedUpdates.check_out_time = `${checkOutTime}:00` // TIME format
-        mappedUpdates.check_out = `${currentTimesheet.date} ${checkOutTime}:00+07:00` // TIMESTAMP format
-        mappedUpdates.hours_worked = updates.total_hours // Sync hours_worked
-      }
-    }
-
-    console.log("[DB] Mapped updates:", JSON.stringify(mappedUpdates, null, 2))
 
     const { data, error } = await supabase
       .from("timesheets")
-      .update(mappedUpdates)
+      .update(updates)
       .eq("id", id)
       .select()
       .single()
-    
-    const duration = Date.now() - startTime
 
     if (error) {
-      console.error("[DB] ===== UPDATE ERROR =====")
-      console.error("[DB] Error:", JSON.stringify(error, null, 2))
-      console.error("[DB] Query duration:", duration + "ms")
-      console.error("[DB] ===========================")
+      console.error("[DB] Update error:", error)
       return null
     }
 
-    console.log("[DB] SUCCESS - Updated timesheet:", JSON.stringify(data, null, 2))
-    console.log("[DB] Query duration:", duration + "ms")
-    console.log("[DB] ===== UPDATE TIMESHEET END =====")
+    console.log("[DB] Updated timesheet successfully:", data)
     return data
-    
-  } catch (err) {
-    console.error("[DB] ===== UPDATE EXCEPTION =====")
-    console.error("[DB] Exception:", err)
-    console.error("[DB] ================================")
+  } catch (error) {
+    console.error("[DB] updateTimesheet error:", error)
     return null
   }
 }
@@ -481,6 +459,27 @@ export function calculateSalary(totalHours: number, hourlyRate: number): number 
     console.error("[CALC] Error calculating salary:", error)
     return 0
   }
+}
+
+import { getSession, decrypt } from "./auth"
+import type { Employee, Timesheet } from "./types"
+import { calculateDailySalary } from './salary-utils'
+
+export function calculateSalaryWithOvertime(
+  totalHours: number, 
+  hourlyRate: number, 
+  employeeOvertimeRate: number = 1.5
+): any {
+  const calculation = calculateDailySalary(totalHours, hourlyRate, employeeOvertimeRate);
+  
+  console.log("[SALARY] Overtime calculation:", {
+    totalHours,
+    hourlyRate,
+    employeeOvertimeRate,
+    calculation
+  });
+  
+  return calculation;
 }
 
 // Legacy exports for backward compatibility

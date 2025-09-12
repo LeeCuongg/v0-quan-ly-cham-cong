@@ -2,22 +2,36 @@ export interface Employee {
   id: string
   name: string
   email: string
-  password: string
-  role: "admin" | "employee"
-  hourlyRate: number
-  isCurrentlyWorking: boolean
-  totalHoursThisMonth: number
-  currentCheckIn?: Date
+  hourly_rate: number
+  overtime_rate?: number
+  total_hours_this_month: number
+  is_currently_working: boolean
+  password_hash: string
+  role: 'employee' | 'manager'
+  is_active: boolean
+  phone?: string
+  created_at: string
+  updated_at: string
+  current_check_in?: string | null
 }
 
 export interface Timesheet {
   id: string
-  employeeId: string
-  employeeName: string
-  checkIn: Date
-  checkOut?: Date
-  hoursWorked?: number
+  employee_id: string
+  employee_name?: string
   date: string
+  check_in_time: string
+  check_out_time?: string | null
+  total_hours: number
+  regular_hours?: number
+  overtime_hours?: number
+  regular_pay?: number
+  overtime_pay?: number
+  salary: number
+  created_at: string
+  updated_at: string
+  hourly_rate?: number
+  overtime_rate?: number
 }
 
 export interface User {

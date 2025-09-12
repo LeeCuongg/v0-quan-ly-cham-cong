@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
 import { getAllTimesheets, getTimesheetsByEmployeeId } from "@/lib/database"
-import { getSession } from "@/lib/auth"
+import { type NextRequest, NextResponse } from "next/server"
+import { getSession, isManager } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/server"
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     // Verify manager access
     const session = await getSession()
@@ -44,8 +46,6 @@ export async function GET(request: Request) {
       date: ts.date,
       check_in_time: ts.check_in_time,
       check_out_time: ts.check_out_time,
-      check_in: ts.check_in,
-      check_out: ts.check_out,
       total_hours: ts.total_hours || 0,
       hours_worked: ts.hours_worked || 0,
       salary: ts.salary || 0,
@@ -53,8 +53,40 @@ export async function GET(request: Request) {
       updated_at: ts.updated_at
     }))
 
-    console.log("[Timesheets API] Returning:", transformedTimesheets.length, "timesheets")
-    return NextResponse.json(transformedTimesheets)
+    // Lấy thông tin phụ cấp từ Supabase
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("timesheets")
+      .select(`
+        *,
+        employees!inner(name, email, hourly_rate, overtime_rate)
+      `)
+      .order("date", { ascending: false })
+
+    if (error) {
+      console.error("Database error:", error)
+      return NextResponse.json({ error: "Database error" }, { status: 500 })
+    }
+
+    // Transform data với overtime info
+    const transformedData = data.map((timesheet) => ({
+      id: timesheet.id,
+      employee_id: timesheet.employee_id,
+      employee_name: timesheet.employee_name || timesheet.employees?.name,
+      date: timesheet.date,
+      check_in_time: timesheet.check_in_time,
+      check_out_time: timesheet.check_out_time,
+      total_hours: timesheet.total_hours || 0,
+      regular_hours: timesheet.regular_hours || 0,
+      overtime_hours: timesheet.overtime_hours || 0,
+      regular_pay: timesheet.regular_pay || 0,
+      overtime_pay: timesheet.overtime_pay || 0,
+      salary: timesheet.salary || 0,
+      hourly_rate: timesheet.employees?.hourly_rate || 0,
+      overtime_rate: timesheet.employees?.overtime_rate || 1.5,
+    }))
+
+    return NextResponse.json(transformedData)
 
   } catch (error) {
     console.error("[Timesheets API] Error:", error)

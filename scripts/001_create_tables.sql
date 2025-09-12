@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
   total_hours_this_month DECIMAL(8,2) NOT NULL DEFAULT 0,
   is_currently_working BOOLEAN NOT NULL DEFAULT false,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('employee', 'admin')) DEFAULT 'employee',
+  role TEXT NOT NULL CHECK (role IN ('employee', 'manager')) DEFAULT 'employee',
   is_active BOOLEAN NOT NULL DEFAULT true,
   phone TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

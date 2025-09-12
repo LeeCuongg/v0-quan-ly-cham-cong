@@ -1,18 +1,77 @@
-import { NextResponse } from "next/server"
-import { updateUser } from "@/lib/database"
+import { type NextRequest, NextResponse } from "next/server"
+import { getSession, isManager } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/server"
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { hourlyRate } = await request.json()
+    const session = await getSession()
 
-    const updatedEmployee = await updateUser(params.id, { hourly_rate: hourlyRate })
-
-    if (!updatedEmployee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 })
+    if (!session || !isManager(session)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
-    return NextResponse.json(updatedEmployee)
+    const employeeId = params.id
+    const body = await request.json()
+    const { name, email, hourly_rate, overtime_rate, role, phone } = body
+
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from("employees")
+      .update({
+        name,
+        email,
+        hourly_rate: parseFloat(hourly_rate),
+        overtime_rate: parseFloat(overtime_rate) || 1.5,
+        role,
+        phone,
+      })
+      .eq("id", employeeId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Database error:", error)
+      return NextResponse.json({ error: "Database error" }, { status: 500 })
+    }
+
+    return NextResponse.json(data)
   } catch (error) {
-    return NextResponse.json({ error: "Failed to update employee" }, { status: 500 })
+    console.error("API error:", error)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getSession()
+
+    if (!session || !isManager(session)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+    }
+
+    const employeeId = params.id
+    const supabase = await createClient()
+
+    const { error } = await supabase
+      .from("employees")
+      .update({ is_active: false })
+      .eq("id", employeeId)
+
+    if (error) {
+      console.error("Database error:", error)
+      return NextResponse.json({ error: "Database error" }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("API error:", error)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }

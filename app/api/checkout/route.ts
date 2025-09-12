@@ -1,13 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import {
-  getAllEmployees,
-  getTodayTimesheet,
-  updateTimesheet,
-  updateUser,
-  calculateTotalHours,
-  calculateSalary,
-} from "@/lib/database"
 import { getSession } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/server"
+import { calculateSalaryWithOvertime } from "@/lib/database"
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,23 +94,33 @@ export async function POST(request: NextRequest) {
 
     // Kiểm tra thời gian tối thiểu (ví dụ: phải làm ít nhất 30 phút)
     const totalHours = calculateTotalHours(checkInTimeStr, checkOutTime)
-    console.log("[API] Total hours calculated:", totalHours)
     
     if (totalHours < 0.5) {
-      console.log("[API] Working time too short:", totalHours)
       return NextResponse.json({ 
         error: `Thời gian làm việc quá ngắn (${totalHours.toFixed(1)} giờ). Tối thiểu 30 phút.` 
       }, { status: 400 })
     }
 
-    const salary = calculateSalary(totalHours, employee.hourly_rate)
-    console.log("[API] Salary calculated:", salary)
+    // Tính lương với overtime
+    const salaryCalculation = calculateSalaryWithOvertime(
+      totalHours,
+      employee.hourly_rate,
+      employee.overtime_rate || 1.5
+    );
 
-    // Chuẩn bị dữ liệu update
+    console.log("[API] Salary calculation with overtime:", salaryCalculation)
+
+    // Chuẩn bị dữ liệu update với overtime
     const updateData = {
-      check_out_time: checkOutTime, // Will be converted to TIME format in updateTimesheet
+      check_out_time: checkOutTime,
       total_hours: Math.round(totalHours * 100) / 100,
-      salary: Math.round(salary),
+      regular_hours: salaryCalculation.regularHours,
+      overtime_hours: salaryCalculation.overtimeHours,
+      regular_pay: salaryCalculation.regularPay,
+      overtime_pay: salaryCalculation.overtimePay,
+      salary: salaryCalculation.totalPay,
+      hourly_rate: employee.hourly_rate,
+      overtime_rate: employee.overtime_rate || 1.5
     }
     
     console.log("[API] Update data:", updateData)
@@ -151,7 +155,11 @@ export async function POST(request: NextRequest) {
         ...updatedTimesheet,
         checkOut: checkOutTime,
         totalHours,
-        salary: Math.round(salary),
+        regularHours: salaryCalculation.regularHours,
+        overtimeHours: salaryCalculation.overtimeHours,
+        regularPay: salaryCalculation.regularPay,
+        overtimePay: salaryCalculation.overtimePay,
+        totalSalary: salaryCalculation.totalPay,
         employeeName: employee.name
       },
       summary: {
@@ -214,4 +222,21 @@ export async function GET(request: NextRequest) {
     console.error("[API] Check checkout status error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
+}
+
+function calculateTotalHours(checkIn: string, checkOut: string): number {
+  const [checkInHour, checkInMinute] = checkIn.split(':').map(Number);
+  const [checkOutHour, checkOutMinute] = checkOut.split(':').map(Number);
+  
+  const checkInTime = checkInHour * 60 + checkInMinute;
+  const checkOutTime = checkOutHour * 60 + checkOutMinute;
+  
+  let totalMinutes = checkOutTime - checkInTime;
+  
+  // Handle next day checkout
+  if (totalMinutes < 0) {
+    totalMinutes += 24 * 60;
+  }
+  
+  return Math.round((totalMinutes / 60) * 100) / 100;
 }

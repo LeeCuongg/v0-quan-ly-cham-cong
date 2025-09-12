@@ -17,6 +17,12 @@ interface DashboardStats {
 export function DashboardStats() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [overtimeStats, setOvertimeStats] = useState({
+    totalOvertimeHours: 0,
+    totalOvertimePay: 0,
+    overtimeEmployees: 0,
+    avgOvertimeRate: 0,
+  })
 
   useEffect(() => {
     async function fetchStats() {
@@ -31,7 +37,27 @@ export function DashboardStats() {
       }
     }
 
+    const fetchOvertimeStats = async () => {
+      try {
+        const response = await fetch("/api/dashboard/overtime-stats")
+        if (response.ok) {
+          const data = await response.json()
+          setOvertimeStats(
+            data.today || {
+              totalOvertimeHours: 0,
+              totalOvertimePay: 0,
+              overtimeEmployees: 0,
+              avgOvertimeRate: 1.5,
+            }
+          )
+        }
+      } catch (error) {
+        console.error("Error fetching overtime stats:", error)
+      }
+    }
+
     fetchStats()
+    fetchOvertimeStats()
   }, [])
 
   if (loading) {
@@ -54,7 +80,7 @@ export function DashboardStats() {
   }
 
   if (!stats) {
-    return <div>Không thể tải dữ liệu thống kê</div>
+    return <div>Đang tải thống kê...</div>
   }
 
   const statCards = [
@@ -86,19 +112,39 @@ export function DashboardStats() {
       icon: DollarSign,
       color: "text-chart-1",
     },
+    {
+      title: "Giờ Overtime hôm nay",
+      value: overtimeStats.totalOvertimeHours.toFixed(1) + "h",
+      description: `${overtimeStats.overtimeEmployees} nhân viên`,
+      icon: Clock,
+      color: "text-orange-500",
+    },
+    {
+      title: "Chi phí Overtime",
+      value: overtimeStats.totalOvertimePay.toLocaleString("vi-VN") + "đ",
+      description: `Hệ số: ${overtimeStats.avgOvertimeRate}x`,
+      icon: DollarSign,
+      color: "text-orange-500",
+    },
   ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
       {statCards.map((stat, index) => (
         <Card key={index} className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {stat.title}
+            </CardTitle>
             <stat.icon className={cn("h-4 w-4", stat.color)} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-card-foreground">{stat.value}</div>
-            <p className="text-xs text-muted-foreground">{stat.description}</p>
+            <div className="text-2xl font-bold text-card-foreground">
+              {stat.value}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {stat.description}
+            </p>
           </CardContent>
         </Card>
       ))}

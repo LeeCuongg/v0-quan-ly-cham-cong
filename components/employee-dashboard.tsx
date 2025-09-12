@@ -48,6 +48,13 @@ export function EmployeeDashboard() {
     status: "not-checked-in",
   })
   const [loading, setLoading] = useState(true)
+  const [overtimeInfo, setOvertimeInfo] = useState({
+    todayOvertime: 0,
+    weekOvertime: 0,
+    monthOvertime: 0,
+    overtimePay: 0,
+    weekOvertimePay: 0
+  })
 
   useEffect(() => {
     if (isEmployee && user) {
@@ -142,6 +149,18 @@ export function EmployeeDashboard() {
       console.error("Error fetching manager data:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchOvertimeInfo = async () => {
+    try {
+      const response = await fetch('/api/my-stats/overtime')
+      if (response.ok) {
+        const data = await response.json()
+        setOvertimeInfo(data)
+      }
+    } catch (error) {
+      console.error('Error fetching overtime info:', error)
     }
   }
 
@@ -487,6 +506,71 @@ export function EmployeeDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Enhanced Stats Cards with Overtime */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {/* Existing cards */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Giờ làm hôm nay</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.weekStats.totalHours || 0}h</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Giờ tuần này</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.weekStats.totalHours || 0}h</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Giờ tháng này</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{(stats?.weekStats.totalSalary || 0).toLocaleString("vi-VN")}đ</div>
+          </CardContent>
+        </Card>
+
+        {/* New Overtime Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overtime hôm nay</CardTitle>
+            <Clock className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {overtimeInfo.todayOvertime.toFixed(1)}h
+            </div>
+            <p className="text-xs text-muted-foreground">
+              +{overtimeInfo.overtimePay.toLocaleString('vi-VN')}đ
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overtime tuần này</CardTitle>
+            <DollarSign className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {overtimeInfo.weekOvertime.toFixed(1)}h
+            </div>
+            <p className="text-xs text-muted-foreground">
+              +{overtimeInfo.weekOvertimePay.toLocaleString('vi-VN')}đ
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
