@@ -96,8 +96,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
               <Input
                 id="hourly_rate"
                 type="number"
-                min="0"
-                step="10.100"
+                step="0.01"
                 value={formData.hourly_rate}
                 onChange={(e) => handleChange("hourly_rate", parseFloat(e.target.value) || 0)}
                 required
@@ -110,8 +109,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
               <Input
                 id="overtime_hourly_rate"
                 type="number"
-                min="0"
-                step="10.100"
+                step="0.01"
                 value={formData.overtime_hourly_rate}
                 onChange={(e) => handleChange("overtime_hourly_rate", parseFloat(e.target.value) || 30000)}
                 required
