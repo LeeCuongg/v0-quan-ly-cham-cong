@@ -100,17 +100,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Kiểm tra thời gian tối thiểu (ví dụ: phải làm ít nhất 30 phút)
+    // Tính toán tổng thời gian làm việc
     const totalHours = calculateTotalHours(checkInTimeStr, checkOutTime)
-
-    if (totalHours < 0.5) {
-      return NextResponse.json(
-        {
-          error: `Thời gian làm việc quá ngắn (${totalHours.toFixed(1)} giờ). Tối thiểu 30 phút.`,
-        },
-        { status: 400 },
-      )
-    }
 
     // Tính lương với overtime
     const salaryCalculation = calculateSalaryWithOvertime(
@@ -145,12 +136,12 @@ export async function POST(request: NextRequest) {
       console.error("[API] Timesheet update error:", updateError)
       return NextResponse.json(
         {
-          error: "Lỗi cập nhật bản ghi chấm công: " + (updateError?.message || "Unknown error"),
+          error: "Lỗi cập nhật bản ghi chấm công: " + ((updateError as Error)?.message || "Unknown error"),
           details: {
             timesheetId: activeTimesheet.id,
             updateData,
-            originalError: updateError?.message,
-            errorType: updateError?.name,
+            originalError: (updateError as Error)?.message,
+            errorType: (updateError as Error)?.name,
           },
         },
         { status: 500 },
