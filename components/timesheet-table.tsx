@@ -18,7 +18,7 @@ interface TimesheetWithOvertime {
   regular_pay: number
   overtime_pay: number
   salary: number
-  overtime_rate: number
+  overtime_hourly_rate: number
 }
   id: string
   employee_name: string
@@ -91,7 +91,7 @@ export function TimesheetTable() {
                 <TableHead className="text-orange-600">Giờ ngoài giờ</TableHead>
                 <TableHead>Lương thường</TableHead>
                 <TableHead className="text-orange-600">Lương overtime</TableHead>
-                <TableHead className="text-orange-600">Hệ số OT</TableHead>
+                <TableHead className="text-orange-600">Lương OT/giờ</TableHead>
                 <TableHead className="font-semibold">Tổng lương</TableHead>
                 <TableHead>Trạng thái</TableHead>
               </TableRow>
@@ -125,7 +125,7 @@ export function TimesheetTable() {
                       {timesheet.overtime_pay > 0 ? `${timesheet.overtime_pay?.toLocaleString('vi-VN')}đ` : '-'}
                     </TableCell>
                     <TableCell className="text-orange-600 font-medium">
-                      {timesheet.overtime_rate}x
+                      {timesheet.overtime_hourly_rate?.toLocaleString('vi-VN')}đ
                     </TableCell>
                     <TableCell className="font-semibold text-green-600">
                       {timesheet.salary?.toLocaleString('vi-VN')}đ

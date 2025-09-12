@@ -8,7 +8,12 @@ ADD COLUMN IF NOT EXISTS overtime_pay DECIMAL(10,2) DEFAULT 0;
 
 -- Add overtime rate to employees table
 ALTER TABLE public.employees 
-ADD COLUMN IF NOT EXISTS overtime_rate DECIMAL(8,2) DEFAULT 1.5; -- Default 1.5x multiplier
+ADD COLUMN IF NOT EXISTS overtime_hourly_rate DECIMAL(10,2) DEFAULT 30000; -- Default 30,000 VND per hour
+
+-- Remove old overtime_rate column if exists and add new one
+ALTER TABLE public.employees DROP COLUMN IF EXISTS overtime_rate;
+ALTER TABLE public.employees 
+ADD COLUMN IF NOT EXISTS overtime_hourly_rate DECIMAL(10,2) DEFAULT 30000;
 
 -- Create indexes for overtime columns
 CREATE INDEX IF NOT EXISTS idx_timesheets_overtime_hours ON public.timesheets(overtime_hours);
@@ -25,5 +30,5 @@ WHERE regular_hours IS NULL OR regular_hours = 0;
 COMMENT ON COLUMN public.timesheets.regular_hours IS 'Regular working hours (max 10 hours per day)';
 COMMENT ON COLUMN public.timesheets.overtime_hours IS 'Overtime hours (hours exceeding 10 per day)';
 COMMENT ON COLUMN public.timesheets.regular_pay IS 'Payment for regular hours';
-COMMENT ON COLUMN public.timesheets.overtime_pay IS 'Payment for overtime hours with multiplier';
-COMMENT ON COLUMN public.employees.overtime_rate IS 'Overtime rate multiplier (e.g., 1.5 for 150%)';
+COMMENT ON COLUMN public.timesheets.overtime_pay IS 'Payment for overtime hours with fixed hourly rate';
+COMMENT ON COLUMN public.employees.overtime_hourly_rate IS 'Fixed overtime hourly rate (e.g., 30000 VND per hour)';

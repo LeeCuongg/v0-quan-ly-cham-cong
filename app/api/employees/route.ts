@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, email, hourly_rate, overtime_rate, role, phone } = body
+    const { name, email, hourly_rate, overtime_hourly_rate, role, phone } = body
 
     if (!name || !email || !hourly_rate) {
       return NextResponse.json({ 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
         name,
         email,
         hourly_rate: parseFloat(hourly_rate),
-        overtime_rate: parseFloat(overtime_rate) || 1.5,
+        overtime_hourly_rate: parseFloat(overtime_hourly_rate) || 30000,
         role: role || 'employee',
         phone: phone || null,
         password: email, // Default password
@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, email, hourly_rate, overtime_rate, role, phone } = body
+    const { name, email, hourly_rate, overtime_hourly_rate, role, phone } = body
 
     const supabase = await createClient()
 
@@ -88,7 +88,7 @@ export async function PUT(request: NextRequest) {
         name,
         email,
         hourly_rate: parseFloat(hourly_rate),
-        overtime_rate: parseFloat(overtime_rate) || 1.5,
+        overtime_hourly_rate: parseFloat(overtime_hourly_rate) || 30000,
         role,
         phone
       })

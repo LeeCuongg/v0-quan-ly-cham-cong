@@ -321,7 +321,7 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
       const salaryCalc = calculateSalaryWithOvertime(
         updates.total_hours,
         updates.hourly_rate,
-        updates.overtime_rate || 1.5
+        updates.overtime_hourly_rate || 30000
       );
 
       // Cập nhật với thông tin overtime
@@ -468,14 +468,14 @@ import { calculateDailySalary } from './salary-utils'
 export function calculateSalaryWithOvertime(
   totalHours: number, 
   hourlyRate: number, 
-  employeeOvertimeRate: number = 1.5
+  overtimeHourlyRate: number = 30000
 ): any {
-  const calculation = calculateDailySalary(totalHours, hourlyRate, employeeOvertimeRate);
+  const calculation = calculateDailySalary(totalHours, hourlyRate, overtimeHourlyRate);
   
   console.log("[SALARY] Overtime calculation:", {
     totalHours,
     hourlyRate,
-    employeeOvertimeRate,
+    overtimeHourlyRate,
     calculation
   });
   

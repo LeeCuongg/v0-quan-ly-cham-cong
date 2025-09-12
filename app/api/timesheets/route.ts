@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       .from("timesheets")
       .select(`
         *,
-        employees!inner(name, email, hourly_rate, overtime_rate)
+        employees!inner(name, email, hourly_rate, overtime_hourly_rate)
       `)
       .order("date", { ascending: false })
 
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       overtime_pay: timesheet.overtime_pay || 0,
       salary: timesheet.salary || 0,
       hourly_rate: timesheet.employees?.hourly_rate || 0,
-      overtime_rate: timesheet.employees?.overtime_rate || 1.5,
+      overtime_hourly_rate: timesheet.employees?.overtime_hourly_rate || 30000,
     }))
 
     return NextResponse.json(transformedData)

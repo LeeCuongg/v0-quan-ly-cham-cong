@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     const salaryCalculation = calculateSalaryWithOvertime(
       totalHours,
       employee.hourly_rate,
-      employee.overtime_rate || 1.5
+      employee.overtime_hourly_rate || 30000
     );
 
     console.log("[API] Salary calculation with overtime:", salaryCalculation)
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       overtime_pay: salaryCalculation.overtimePay,
       salary: salaryCalculation.totalPay,
       hourly_rate: employee.hourly_rate,
-      overtime_rate: employee.overtime_rate || 1.5
+      overtime_hourly_rate: employee.overtime_hourly_rate || 30000
     }
     
     console.log("[API] Update data:", updateData)
@@ -160,6 +160,7 @@ export async function POST(request: NextRequest) {
         regularPay: salaryCalculation.regularPay,
         overtimePay: salaryCalculation.overtimePay,
         totalSalary: salaryCalculation.totalPay,
+        overtimeHourlyRate: employee.overtime_hourly_rate || 30000,
         employeeName: employee.name
       },
       summary: {

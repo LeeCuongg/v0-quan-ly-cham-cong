@@ -3,7 +3,7 @@ export interface Employee {
   name: string
   email: string
   hourly_rate: number
-  overtime_rate?: number
+  overtime_hourly_rate?: number
   total_hours_this_month: number
   is_currently_working: boolean
   password_hash: string
@@ -31,7 +31,7 @@ export interface Timesheet {
   created_at: string
   updated_at: string
   hourly_rate?: number
-  overtime_rate?: number
+  overtime_hourly_rate?: number
 }
 
 export interface User {

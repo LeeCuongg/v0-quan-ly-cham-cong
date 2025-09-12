@@ -18,7 +18,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
     name: employee?.name || "",
     email: employee?.email || "",
     hourly_rate: employee?.hourly_rate || 0,
-    overtime_rate: employee?.overtime_rate || 1.5,
+    overtime_hourly_rate: employee?.overtime_hourly_rate || 30000,
     role: employee?.role || "employee",
     phone: employee?.phone || "",
   })
@@ -105,18 +105,18 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="overtime_rate">Hệ số Overtime</Label>
+              <Label htmlFor="overtime_hourly_rate">Lương Overtime/giờ (VNĐ)</Label>
               <Input
-                id="overtime_rate"
+                id="overtime_hourly_rate"
                 type="number"
-                min="1"
-                step="0.1"
-                value={formData.overtime_rate}
-                onChange={(e) => handleChange("overtime_rate", parseFloat(e.target.value) || 1.5)}
+                min="0"
+                step="1000"
+                value={formData.overtime_hourly_rate}
+                onChange={(e) => handleChange("overtime_hourly_rate", parseFloat(e.target.value) || 30000)}
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Ví dụ: 1.5 = 150% lương cơ bản
+                Ví dụ: 30000 = 30,000đ/giờ ngoài giờ
               </p>
             </div>
           </div>

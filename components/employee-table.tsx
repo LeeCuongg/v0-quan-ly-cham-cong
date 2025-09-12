@@ -14,7 +14,7 @@ interface Employee {
   name: string
   email: string
   hourly_rate: number
-  overtime_rate: number
+  overtime_hourly_rate: number
   role: string
   phone?: string
   is_active: boolean
@@ -139,7 +139,7 @@ export function EmployeeTable() {
                 <TableHead>Email</TableHead>
                 <TableHead>Vai trò</TableHead>
                 <TableHead>Lương/giờ</TableHead>
-                <TableHead className="text-orange-600">Hệ số OT</TableHead>
+                <TableHead className="text-orange-600">Lương OT/giờ</TableHead>
                 <TableHead>Giờ tháng này</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Thao tác</TableHead>
@@ -160,7 +160,7 @@ export function EmployeeTable() {
                     <TableCell>{getRoleBadge(employee.role)}</TableCell>
                     <TableCell>{employee.hourly_rate?.toLocaleString('vi-VN')}đ</TableCell>
                     <TableCell className="text-orange-600 font-medium">
-                      {employee.overtime_rate}x
+                      {employee.overtime_hourly_rate?.toLocaleString('vi-VN')}đ
                     </TableCell>
                     <TableCell>{employee.total_hours_this_month}h</TableCell>
                     <TableCell>{getStatusBadge(employee.is_currently_working)}</TableCell>
@@ -198,9 +198,9 @@ export function EmployeeTable() {
               </div>
             </div>
             <div className="p-4 bg-card rounded-lg border">
-              <div className="text-sm text-muted-foreground">Hệ số OT trung bình</div>
+              <div className="text-sm text-muted-foreground">Lương OT trung bình</div>
               <div className="text-2xl font-bold text-orange-600">
-                {(employees.reduce((sum, e) => sum + e.overtime_rate, 0) / employees.length).toFixed(1)}x
+                {(employees.reduce((sum, e) => sum + e.overtime_hourly_rate, 0) / employees.length).toLocaleString('vi-VN')}đ
               </div>
             </div>
           </div>

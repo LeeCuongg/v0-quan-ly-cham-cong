@@ -15,7 +15,7 @@ export async function PUT(
 
     const employeeId = params.id
     const body = await request.json()
-    const { name, email, hourly_rate, overtime_rate, role, phone } = body
+    const { name, email, hourly_rate, overtime_hourly_rate, role, phone } = body
 
     const supabase = await createClient()
 
@@ -25,7 +25,7 @@ export async function PUT(
         name,
         email,
         hourly_rate: parseFloat(hourly_rate),
-        overtime_rate: parseFloat(overtime_rate) || 1.5,
+        overtime_hourly_rate: parseFloat(overtime_hourly_rate) || 30000,
         role,
         phone,
       })

@@ -4,7 +4,7 @@ export interface SalaryCalculation {
   regularPay: number;
   overtimePay: number;
   totalPay: number;
-  overtimeRate: number;
+  overtimeHourlyRate: number;
 }
 
 export interface OvertimeRules {
@@ -25,19 +25,17 @@ const DEFAULT_OVERTIME_RULES: OvertimeRules = {
 export function calculateDailySalary(
   totalHours: number,
   hourlyRate: number,
-  employeeOvertimeRate: number = 1.5,
+  overtimeHourlyRate: number = 30000,
   overtimeRules: OvertimeRules = DEFAULT_OVERTIME_RULES
 ): SalaryCalculation {
   // Tính giờ thường và ngoài giờ
   const regularHours = Math.min(totalHours, overtimeRules.dailyLimit);
   const overtimeHours = Math.max(0, totalHours - overtimeRules.dailyLimit);
 
-  // Sử dụng overtime rate cá nhân của nhân viên
-  const effectiveOvertimeRate = employeeOvertimeRate;
-
   // Tính lương
   const regularPay = regularHours * hourlyRate;
-  const overtimePay = overtimeHours * (hourlyRate * effectiveOvertimeRate);
+  const overtimePay = overtimeHours * overtimeHourlyRate; // Sử dụng lương cố định
+
   const totalPay = regularPay + overtimePay;
 
   return {
@@ -46,7 +44,7 @@ export function calculateDailySalary(
     regularPay: Math.round(regularPay),
     overtimePay: Math.round(overtimePay),
     totalPay: Math.round(totalPay),
-    overtimeRate: effectiveOvertimeRate,
+    overtimeHourlyRate: overtimeHourlyRate,
   };
 }
 
