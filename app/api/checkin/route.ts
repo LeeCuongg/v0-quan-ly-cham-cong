@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // If no active timesheet, employee can check-in (including multiple times per day)
+
     // Step 4: Prepare timesheet data
     console.log("[v0] Step 4: Preparing timesheet data...")
     const now = new Date()
@@ -105,11 +107,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[v0] ===== CHECKIN ERROR =====")
     console.error("[v0] Error details:", error)
-    console.error("[v0] Error stack:", error?.stack)
+    console.error("[v0] Error stack:", (error as Error)?.stack)
     return NextResponse.json(
       {
         error: "Internal server error",
-        details: error?.message,
+        details: (error as Error)?.message,
       },
       { status: 500 },
     )
