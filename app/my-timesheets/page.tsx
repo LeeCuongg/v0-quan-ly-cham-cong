@@ -119,17 +119,31 @@ export default function MyTimesheetsPage() {
     }
   }
 
-  const setQuickRange = (range: "week" | "month") => {
+  const setQuickRange = (range: "week" | "month" | "prevWeek" | "prevMonth") => {
     const now = new Date()
 
     if (range === "week") {
-      const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
-      const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6))
+      const startOfWeek = new Date(now)
+      startOfWeek.setDate(now.getDate() - now.getDay())
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 6)
       setStartDate(startOfWeek.toISOString().split("T")[0])
       setEndDate(endOfWeek.toISOString().split("T")[0])
-    } else {
+    } else if (range === "prevWeek") {
+      const startOfWeek = new Date(now)
+      startOfWeek.setDate(now.getDate() - now.getDay() - 7)
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 6)
+      setStartDate(startOfWeek.toISOString().split("T")[0])
+      setEndDate(endOfWeek.toISOString().split("T")[0])
+    } else if (range === "month") {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      setStartDate(firstDay.toISOString().split("T")[0])
+      setEndDate(lastDay.toISOString().split("T")[0])
+    } else if (range === "prevMonth") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const lastDay = new Date(now.getFullYear(), now.getMonth(), 0)
       setStartDate(firstDay.toISOString().split("T")[0])
       setEndDate(lastDay.toISOString().split("T")[0])
     }
@@ -243,12 +257,18 @@ export default function MyTimesheetsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button variant="outline" onClick={() => setQuickRange("week")}>
                   Tuần này
                 </Button>
+                <Button variant="outline" onClick={() => setQuickRange("prevWeek")}>
+                  Tuần trước
+                </Button>
                 <Button variant="outline" onClick={() => setQuickRange("month")}>
                   Tháng này
+                </Button>
+                <Button variant="outline" onClick={() => setQuickRange("prevMonth")}>
+                  Tháng trước
                 </Button>
               </div>
 
