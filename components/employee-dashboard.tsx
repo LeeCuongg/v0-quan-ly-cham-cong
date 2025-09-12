@@ -5,7 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/components/auth-provider"
-import { Clock, Calendar, DollarSign, CheckCircle, XCircle, LogIn, User, BarChart3, Users, UserCheck, Activity } from "lucide-react"
+import {
+  Clock,
+  Calendar,
+  DollarSign,
+  CheckCircle,
+  XCircle,
+  LogIn,
+  User,
+  BarChart3,
+  Users,
+  UserCheck,
+  Activity,
+} from "lucide-react"
 import Link from "next/link"
 
 interface EmployeeStats {
@@ -18,9 +30,10 @@ interface EmployeeStats {
 }
 
 interface CheckinStatus {
-  isCheckedIn: boolean
+  hasActiveSession: boolean
   checkInTime?: string
-  status: "not-checked-in" | "working" | "finished"
+  status: "not-checked-in" | "working" | "can-checkin-again"
+  totalSessions: number
 }
 
 interface DashboardStats {
@@ -44,8 +57,9 @@ export function EmployeeDashboard() {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [checkinStatus, setCheckinStatus] = useState<CheckinStatus>({
-    isCheckedIn: false,
+    hasActiveSession: false,
     status: "not-checked-in",
+    totalSessions: 0,
   })
   const [loading, setLoading] = useState(true)
   const [overtimeInfo, setOvertimeInfo] = useState({
@@ -53,7 +67,7 @@ export function EmployeeDashboard() {
     weekOvertime: 0,
     monthOvertime: 0,
     overtimePay: 0,
-    weekOvertimePay: 0
+    weekOvertimePay: 0,
   })
 
   useEffect(() => {
@@ -73,27 +87,29 @@ export function EmployeeDashboard() {
         setStats(statsData)
       }
 
-      // Check today's status
-      const today = new Date().toISOString().split("T")[0]
-      const timesheetResponse = await fetch(`/api/my-timesheets?startDate=${today}&endDate=${today}`)
-      if (timesheetResponse.ok) {
-        const timesheetData = await timesheetResponse.json()
+      const statusResponse = await fetch("/api/checkout")
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json()
 
-        if (timesheetData.timesheets && timesheetData.timesheets.length > 0) {
-          const todayTimesheet = timesheetData.timesheets[0]
-          if (todayTimesheet.checkIn && !todayTimesheet.checkOut) {
-            setCheckinStatus({
-              isCheckedIn: true,
-              checkInTime: todayTimesheet.checkIn,
-              status: "working",
-            })
-          } else if (todayTimesheet.checkIn && todayTimesheet.checkOut) {
-            setCheckinStatus({
-              isCheckedIn: false,
-              checkInTime: todayTimesheet.checkIn,
-              status: "finished",
-            })
-          }
+        if (statusData.hasActiveSession) {
+          setCheckinStatus({
+            hasActiveSession: true,
+            checkInTime: statusData.checkInTime,
+            status: "working",
+            totalSessions: statusData.totalSessions || 0,
+          })
+        } else if (statusData.hasCheckedIn) {
+          setCheckinStatus({
+            hasActiveSession: false,
+            status: "can-checkin-again",
+            totalSessions: statusData.totalSessions || 0,
+          })
+        } else {
+          setCheckinStatus({
+            hasActiveSession: false,
+            status: "not-checked-in",
+            totalSessions: 0,
+          })
         }
       }
     } catch (error) {
@@ -117,7 +133,7 @@ export function EmployeeDashboard() {
       const timesheetsResponse = await fetch(`/api/timesheets?startDate=${today}&endDate=${today}`)
       if (timesheetsResponse.ok) {
         const timesheetsData = await timesheetsResponse.json()
-        
+
         // Transform timesheets to recent activities
         const activities: RecentActivity[] = []
         timesheetsData.forEach((timesheet: any) => {
@@ -127,7 +143,7 @@ export function EmployeeDashboard() {
               employeeName: timesheet.employee_name,
               action: `đã check-in lúc ${formatTime(timesheet.check_in_time)}`,
               time: timesheet.check_in_time,
-              type: "checkin"
+              type: "checkin",
             })
           }
           if (timesheet.check_out_time) {
@@ -136,7 +152,7 @@ export function EmployeeDashboard() {
               employeeName: timesheet.employee_name,
               action: `đã check-out lúc ${formatTime(timesheet.check_out_time)}`,
               time: timesheet.check_out_time,
-              type: "checkout"
+              type: "checkout",
             })
           }
         })
@@ -154,21 +170,21 @@ export function EmployeeDashboard() {
 
   const fetchOvertimeInfo = async () => {
     try {
-      const response = await fetch('/api/my-stats/overtime')
+      const response = await fetch("/api/my-stats/overtime")
       if (response.ok) {
         const data = await response.json()
         setOvertimeInfo(data)
       }
     } catch (error) {
-      console.error('Error fetching overtime info:', error)
+      console.error("Error fetching overtime info:", error)
     }
   }
 
   const formatTime = (timeString: string) => {
-    if (timeString.includes('T')) {
+    if (timeString.includes("T")) {
       return new Date(timeString).toLocaleTimeString("vi-VN", {
         hour: "2-digit",
-        minute: "2-digit"
+        minute: "2-digit",
       })
     }
     return timeString.slice(0, 5)
@@ -190,11 +206,11 @@ export function EmployeeDashboard() {
             Đang làm việc
           </Badge>
         )
-      case "finished":
+      case "can-checkin-again":
         return (
-          <Badge variant="outline">
-            <CheckCircle className="w-4 h-4 mr-1" />
-            Đã hoàn thành
+          <Badge variant="outline" className="border-blue-500 text-blue-600">
+            <Activity className="w-4 h-4 mr-1" />
+            Có thể chấm công lại
           </Badge>
         )
     }
@@ -254,7 +270,7 @@ export function EmployeeDashboard() {
                   <Clock className="h-4 w-4 text-accent" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats?.totalHoursToday?.toFixed(1) || '0.0'}h</div>
+                  <div className="text-2xl font-bold">{dashboardStats?.totalHoursToday?.toFixed(1) || "0.0"}h</div>
                   <p className="text-xs text-muted-foreground">Tổng giờ làm việc</p>
                 </CardContent>
               </Card>
@@ -287,11 +303,14 @@ export function EmployeeDashboard() {
                     {recentActivities.length > 0 ? (
                       recentActivities.map((activity) => (
                         <div key={activity.id} className="flex items-center gap-3 text-sm">
-                          <div className={`w-2 h-2 rounded-full ${
-                            activity.type === 'checkin' ? 'bg-secondary' : 'bg-accent'
-                          }`}></div>
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              activity.type === "checkin" ? "bg-secondary" : "bg-accent"
+                            }`}
+                          ></div>
                           <span className="text-muted-foreground">
-                            <span className="font-medium text-foreground">{activity.employeeName}</span> {activity.action}
+                            <span className="font-medium text-foreground">{activity.employeeName}</span>{" "}
+                            {activity.action}
                           </span>
                         </div>
                       ))
@@ -316,14 +335,12 @@ export function EmployeeDashboard() {
                       </div>
                     ) : (
                       <div className="p-3 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">
-                          Hiện tại không có nhân viên nào đang làm việc
-                        </p>
+                        <p className="text-sm text-muted-foreground">Hiện tại không có nhân viên nào đang làm việc</p>
                       </div>
                     )}
                     <div className="p-3 bg-muted rounded-lg">
                       <p className="text-sm text-muted-foreground">
-                        Tổng giờ làm việc hôm nay: {dashboardStats?.totalHoursToday?.toFixed(1) || '0.0'} giờ
+                        Tổng giờ làm việc hôm nay: {dashboardStats?.totalHoursToday?.toFixed(1) || "0.0"} giờ
                       </p>
                     </div>
                   </div>
@@ -336,7 +353,7 @@ export function EmployeeDashboard() {
     )
   }
 
-  // Employee dashboard - existing code...
+  // Employee dashboard
   if (!isEmployee || !user) {
     return null
   }
@@ -418,7 +435,10 @@ export function EmployeeDashboard() {
             <div className="flex flex-col gap-2">
               {getStatusBadge()}
               {checkinStatus.checkInTime && (
-                <p className="text-xs text-muted-foreground">Check-in: {checkinStatus.checkInTime}</p>
+                <p className="text-xs text-muted-foreground">Phiên hiện tại: {checkinStatus.checkInTime}</p>
+              )}
+              {checkinStatus.totalSessions > 0 && (
+                <p className="text-xs text-muted-foreground">Phiên hôm nay: {checkinStatus.totalSessions}</p>
               )}
             </div>
           </CardContent>
@@ -435,7 +455,7 @@ export function EmployeeDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">Quản lý thời gian làm việc hàng ngày</p>
+            <p className="text-sm text-muted-foreground">Quản lý thời gian làm việc - Hỗ trợ nhiều phiên trong ngày</p>
             <Link href="/checkin">
               <Button className="w-full">Đi đến trang chấm công</Button>
             </Link>
@@ -500,6 +520,7 @@ export function EmployeeDashboard() {
                   {getStatusBadge()}
                 </div>
                 {checkinStatus.checkInTime && <p>Thời gian check-in: {checkinStatus.checkInTime}</p>}
+                {checkinStatus.totalSessions > 0 && <p>Số phiên hôm nay: {checkinStatus.totalSessions}</p>}
                 <p>Ngày: {new Date().toLocaleDateString("vi-VN")}</p>
               </div>
             </div>
@@ -547,12 +568,8 @@ export function EmployeeDashboard() {
             <Clock className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {overtimeInfo.todayOvertime.toFixed(1)}h
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +{overtimeInfo.overtimePay.toLocaleString('vi-VN')}đ
-            </p>
+            <div className="text-2xl font-bold text-orange-600">{overtimeInfo.todayOvertime.toFixed(1)}h</div>
+            <p className="text-xs text-muted-foreground">+{overtimeInfo.overtimePay.toLocaleString("vi-VN")}đ</p>
           </CardContent>
         </Card>
 
@@ -562,12 +579,8 @@ export function EmployeeDashboard() {
             <DollarSign className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {overtimeInfo.weekOvertime.toFixed(1)}h
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +{overtimeInfo.weekOvertimePay.toLocaleString('vi-VN')}đ
-            </p>
+            <div className="text-2xl font-bold text-orange-600">{overtimeInfo.weekOvertime.toFixed(1)}h</div>
+            <p className="text-xs text-muted-foreground">+{overtimeInfo.weekOvertimePay.toLocaleString("vi-VN")}đ</p>
           </CardContent>
         </Card>
       </div>

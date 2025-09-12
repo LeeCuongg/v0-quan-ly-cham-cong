@@ -6,20 +6,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ProtectedPage } from "@/components/protected-page"
 import { useAuth } from "@/components/auth-provider"
-import { Clock, CheckCircle, XCircle, LogIn, LogOut } from "lucide-react"
+import { Clock, CheckCircle, XCircle, LogIn, LogOut, Activity } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface CheckinStatus {
-  isCheckedIn: boolean
+  hasActiveSession: boolean
   checkInTime?: string
-  status: "not-checked-in" | "working" | "finished"
+  status: "not-checked-in" | "working" | "can-checkin-again"
+  totalSessions: number
 }
 
 export default function CheckinPage() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [checkinStatus, setCheckinStatus] = useState<CheckinStatus>({
-    isCheckedIn: false,
+    hasActiveSession: false,
     status: "not-checked-in",
+    totalSessions: 0,
   })
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
@@ -41,52 +43,38 @@ export default function CheckinPage() {
     if (!user) return
 
     try {
-      const today = new Date().toISOString().split("T")[0]
-      const response = await fetch(`/api/my-timesheets?startDate=${today}&endDate=${today}`)
+      const response = await fetch("/api/checkout")
       const data = await response.json()
-      
-      console.log("[CHECKIN] Today's timesheet data:", data)
 
-      if (data.timesheets && data.timesheets.length > 0) {
-        const todayTimesheet = data.timesheets[0]
-        
-        // Kiểm tra các trường khác nhau từ database
-        const checkIn = todayTimesheet.check_in_time || todayTimesheet.checkIn
-        const checkOut = todayTimesheet.check_out_time || todayTimesheet.checkOut
-        
-        console.log("[CHECKIN] Check-in:", checkIn, "Check-out:", checkOut)
-        
-        if (checkIn && !checkOut) {
-          // Đang làm việc
+      console.log("[CHECKIN] Status check data:", data)
+
+      if (response.ok) {
+        if (data.hasActiveSession) {
+          // Currently working
           setCheckinStatus({
-            isCheckedIn: true,
-            checkInTime: checkIn,
+            hasActiveSession: true,
+            checkInTime: data.checkInTime,
             status: "working",
+            totalSessions: data.totalSessions || 0,
           })
           console.log("[CHECKIN] Status: Currently working")
-        } else if (checkIn && checkOut) {
-          // Đã hoàn thành
+        } else if (data.hasCheckedIn) {
+          // Has checked in today but not currently working - can check in again
           setCheckinStatus({
-            isCheckedIn: false,
-            checkInTime: checkIn,
-            status: "finished",
+            hasActiveSession: false,
+            status: "can-checkin-again",
+            totalSessions: data.totalSessions || 0,
           })
-          console.log("[CHECKIN] Status: Finished for today")
+          console.log("[CHECKIN] Status: Can check in again")
         } else {
-          // Chưa check-in
+          // No check-ins today
           setCheckinStatus({
-            isCheckedIn: false,
+            hasActiveSession: false,
             status: "not-checked-in",
+            totalSessions: 0,
           })
           console.log("[CHECKIN] Status: Not checked in")
         }
-      } else {
-        // Không có bản ghi nào hôm nay
-        setCheckinStatus({
-          isCheckedIn: false,
-          status: "not-checked-in",
-        })
-        console.log("[CHECKIN] Status: No timesheet for today")
       }
     } catch (error) {
       console.error("[CHECKIN] Error checking status:", error)
@@ -109,24 +97,16 @@ export default function CheckinPage() {
 
       if (response.ok) {
         setCheckinStatus({
-          isCheckedIn: true,
+          hasActiveSession: true,
           checkInTime: data.timesheet.check_in_time || data.timesheet.checkIn,
           status: "working",
+          totalSessions: checkinStatus.totalSessions + 1,
         })
         toast({
           title: "Chấm công thành công!",
           description: `Bạn đã check-in lúc ${data.timesheet.check_in_time || data.timesheet.checkIn}`,
         })
       } else {
-        // Nếu đã check-in rồi, cập nhật trạng thái
-        if (data.error === "Already checked in today" && data.existingTimesheet) {
-          const timesheet = data.existingTimesheet
-          setCheckinStatus({
-            isCheckedIn: true,
-            checkInTime: timesheet.check_in_time || timesheet.checkIn,
-            status: "working",
-          })
-        }
         toast({
           title: "Lỗi",
           description: data.error,
@@ -153,14 +133,14 @@ export default function CheckinPage() {
       // Tính toán thời gian checkout phía client
       const now = new Date()
       const checkoutTime = now.toTimeString().slice(0, 5) // "HH:MM"
-      
+
       console.log("[CHECKIN] Sending checkout with time:", checkoutTime)
-      
+
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          checkoutTime: checkoutTime 
+        body: JSON.stringify({
+          checkoutTime: checkoutTime,
         }),
       })
 
@@ -169,14 +149,20 @@ export default function CheckinPage() {
 
       if (response.ok) {
         setCheckinStatus({
-          isCheckedIn: false,
+          hasActiveSession: false,
           checkInTime: checkinStatus.checkInTime,
-          status: "finished",
+          status: "can-checkin-again", // Allow checking in again
+          totalSessions: checkinStatus.totalSessions,
         })
         toast({
           title: "Check-out thành công!",
-          description: `Bạn đã hoàn thành ${data.timesheet.totalHours || data.timesheet.total_hours} giờ làm việc`,
+          description: data.message,
         })
+
+        // Refresh status after a short delay
+        setTimeout(() => {
+          checkTodayStatus()
+        }, 1000)
       } else {
         toast({
           title: "Lỗi",
@@ -212,15 +198,18 @@ export default function CheckinPage() {
             Đang làm việc
           </Badge>
         )
-      case "finished":
+      case "can-checkin-again":
         return (
-          <Badge variant="outline">
-            <CheckCircle className="w-4 h-4 mr-1" />
-            Đã hoàn thành
+          <Badge variant="outline" className="border-blue-500 text-blue-600">
+            <Activity className="w-4 h-4 mr-1" />
+            Có thể chấm công lại
           </Badge>
         )
     }
   }
+
+  const canCheckIn = checkinStatus.status === "not-checked-in" || checkinStatus.status === "can-checkin-again"
+  const canCheckOut = checkinStatus.status === "working"
 
   return (
     <ProtectedPage requiredRole="employee">
@@ -262,9 +251,10 @@ export default function CheckinPage() {
                 <CardContent className="text-center space-y-4">
                   {getStatusBadge()}
                   {checkinStatus.checkInTime && (
-                    <p className="text-sm text-muted-foreground">
-                      Đã check-in lúc: {checkinStatus.checkInTime}
-                    </p>
+                    <p className="text-sm text-muted-foreground">Phiên hiện tại: {checkinStatus.checkInTime}</p>
+                  )}
+                  {checkinStatus.totalSessions > 0 && (
+                    <p className="text-sm text-muted-foreground">Số phiên hôm nay: {checkinStatus.totalSessions}</p>
                   )}
                 </CardContent>
               </Card>
@@ -275,10 +265,10 @@ export default function CheckinPage() {
                   size="lg"
                   className="h-20 text-lg bg-green-600 hover:bg-green-700"
                   onClick={handleCheckin}
-                  disabled={loading || checkinStatus.status !== "not-checked-in"}
+                  disabled={loading || !canCheckIn}
                 >
                   <LogIn className="w-6 h-6 mr-2" />
-                  CHECK IN
+                  {checkinStatus.totalSessions > 0 ? "CHECK IN LẠI" : "CHECK IN"}
                 </Button>
 
                 <Button
@@ -286,12 +276,23 @@ export default function CheckinPage() {
                   variant="destructive"
                   className="h-20 text-lg"
                   onClick={handleCheckout}
-                  disabled={loading || checkinStatus.status !== "working"}
+                  disabled={loading || !canCheckOut}
                 >
                   <LogOut className="w-6 h-6 mr-2" />
                   CHECK OUT
                 </Button>
               </div>
+
+              {checkinStatus.status === "can-checkin-again" && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="pt-6">
+                    <div className="text-center text-sm text-blue-700">
+                      <p className="font-medium">Bạn có thể chấm công nhiều lần trong ngày!</p>
+                      <p>Nhấn "CHECK IN LẠI" để bắt đầu phiên làm việc mới.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
