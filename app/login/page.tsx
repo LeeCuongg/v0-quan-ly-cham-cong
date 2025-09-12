@@ -38,15 +38,16 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
+        credentials: "include", // Đảm bảo cookies được gửi/nhận
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        // Redirect based on user role
-        const redirectPath = data.user.role === "manager" ? "/" : "/checkin"
-        router.push(redirectPath)
-        router.refresh()
+        // Delay nhỏ để đảm bảo cookie được set
+        setTimeout(() => {
+          window.location.href = data.user.role === "manager" ? "/" : "/checkin"
+        }, 100)
       } else {
         setError(data.error || "Đăng nhập thất bại")
       }
