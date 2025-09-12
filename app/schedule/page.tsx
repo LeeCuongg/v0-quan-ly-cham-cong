@@ -227,6 +227,16 @@ export default function SchedulePage() {
     }).format(amount)
   }
 
+  const formatHours = (hours: number) => {
+    const totalMinutes = Math.round(hours * 60)
+    const h = Math.floor(totalMinutes / 60)
+    const m = totalMinutes % 60
+    
+    if (h === 0) return `${m} phút`
+    if (m === 0) return `${h} giờ`
+    return `${h} giờ ${m} phút`
+  }
+
   if (loading) {
     return (
       <ProtectedPage requiredRole="employee">
@@ -290,8 +300,8 @@ export default function SchedulePage() {
                   <CardTitle className="text-sm font-medium">Tổng giờ tuần</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{schedule.totalHours.toFixed(1)}h</div>
-                  <p className="text-xs text-muted-foreground">Mục tiêu: {schedule.expectedHours}h</p>
+                  <div className="text-2xl font-bold">{formatHours(schedule.totalHours)}</div>
+                  <p className="text-xs text-muted-foreground">Mục tiêu: {formatHours(schedule.expectedHours)}</p>
                 </CardContent>
               </Card>
 
@@ -373,7 +383,7 @@ export default function SchedulePage() {
                           <div className="text-muted-foreground">Tổng giờ</div>
                           <div className="font-medium flex items-center gap-1">
                             <Clock className="w-4 h-4" />
-                            {entry.totalHours.toFixed(1)}h
+                            {formatHours(entry.totalHours)}
                           </div>
                         </div>
 

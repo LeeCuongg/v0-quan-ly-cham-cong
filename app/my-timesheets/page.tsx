@@ -185,6 +185,16 @@ export default function MyTimesheetsPage() {
     return timeString.slice(0, 5) // Get HH:mm only
   }
 
+  const formatHours = (hours: number) => {
+    const totalMinutes = Math.round(hours * 60)
+    const h = Math.floor(totalMinutes / 60)
+    const m = totalMinutes % 60
+    
+    if (h === 0) return `${m} phút`
+    if (m === 0) return `${h} giờ`
+    return `${h} giờ ${m} phút`
+  }
+
   const getStatusBadge = (timesheet: Timesheet) => {
     const hasCheckOut = timesheet.check_out_time || timesheet.check_out
     
@@ -221,9 +231,9 @@ export default function MyTimesheetsPage() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{summary.totalHours.toFixed(1)}h</div>
+                <div className="text-2xl font-bold">{formatHours(summary.totalHours)}</div>
                 <p className="text-xs text-muted-foreground">
-                  Trung bình: {summary.avgHoursPerDay.toFixed(1)}h/ngày
+                  Trung bình: {formatHours(summary.avgHoursPerDay)}/ngày
                 </p>
               </CardContent>
             </Card>
@@ -234,7 +244,7 @@ export default function MyTimesheetsPage() {
                 <Clock className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{summary.totalOvertimeHours.toFixed(1)}h</div>
+                <div className="text-2xl font-bold text-orange-600">{formatHours(summary.totalOvertimeHours)}</div>
                 <p className="text-xs text-muted-foreground">
                   Giờ làm thêm
                 </p>
@@ -406,12 +416,12 @@ export default function MyTimesheetsPage() {
                           </td>
                           <td className="p-3">
                             <div className="font-semibold text-blue-600">
-                              {(timesheet.total_hours || timesheet.hours_worked || 0).toFixed(1)}h
+                              {formatHours((timesheet.total_hours || timesheet.hours_worked || 0))}
                             </div>
                           </td>
                           <td className="p-3">
                             <div className="font-semibold text-orange-600">
-                              {(timesheet.overtime_hours || 0).toFixed(1)}h
+                              {formatHours((timesheet.overtime_hours || 0))}
                             </div>
                           </td>
                           <td className="p-3">
