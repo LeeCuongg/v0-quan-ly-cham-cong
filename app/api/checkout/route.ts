@@ -138,20 +138,59 @@ export async function POST(request: NextRequest) {
     
     console.log("[API] Update data:", updateData)
     console.log("[API] Timesheet ID to update:", timesheet.id)
+    console.log("[API] Timesheet ID type:", typeof timesheet.id)
+    console.log("[API] Current timesheet state:", {
+      id: timesheet.id,
+      check_in_time: timesheet.check_in_time,
+      check_out_time: timesheet.check_out_time,
+      employee_id: timesheet.employee_id
+    })
+
+    // Validate update data before attempting update
+    if (!timesheet.id) {
+      console.error("[API] Invalid timesheet ID:", timesheet.id)
+      return NextResponse.json({ 
+        error: "ID bản ghi chấm công không hợp lệ",
+        details: { timesheetId: timesheet.id }
+      }, { status: 400 })
+    }
+
+    // Validate required update fields
+    const requiredFields = ['check_out_time', 'total_hours', 'salary']
+    for (const field of requiredFields) {
+      if (updateData[field] === undefined || updateData[field] === null) {
+        console.error(`[API] Missing required field: ${field}`, updateData[field])
+        return NextResponse.json({ 
+          error: `Thiếu dữ liệu bắt buộc: ${field}`,
+          details: { field, value: updateData[field] }
+        }, { status: 400 })
+      }
+    }
 
     // Cập nhật bản ghi chấm công với error handling chi tiết
     console.log("[API] Updating timesheet...")
     let updatedTimesheet
     try {
+      console.log("[API] Calling updateTimesheet with:", {
+        id: timesheet.id,
+        updateData: updateData
+      })
+      
       updatedTimesheet = await updateTimesheet(timesheet.id, updateData)
-      console.log("[API] Updated timesheet result:", updatedTimesheet)
+      
+      console.log("[API] Raw updateTimesheet result:", updatedTimesheet)
+      console.log("[API] Result type:", typeof updatedTimesheet)
+      console.log("[API] Result is null:", updatedTimesheet === null)
+      console.log("[API] Result is undefined:", updatedTimesheet === undefined)
+      
     } catch (updateError) {
       console.error("[API] Timesheet update error:", updateError)
       console.error("[API] Update error details:", {
         timesheetId: timesheet.id,
         updateData,
         errorMessage: updateError?.message,
-        errorStack: updateError?.stack
+        errorStack: updateError?.stack,
+        errorName: updateError?.name
       })
       
       return NextResponse.json({ 
@@ -159,21 +198,44 @@ export async function POST(request: NextRequest) {
         details: {
           timesheetId: timesheet.id,
           updateData,
-          originalError: updateError?.message
+          originalError: updateError?.message,
+          errorType: updateError?.name
         }
       }, { status: 500 })
     }
 
+    // Check if update result is null or undefined
     if (!updatedTimesheet) {
-      console.log("[API] Failed to update timesheet - null result")
+      console.error("[API] Failed to update timesheet - null/undefined result")
+      console.error("[API] Debug info:", {
+        timesheetId: timesheet.id,
+        updateData,
+        resultType: typeof updatedTimesheet,
+        isNull: updatedTimesheet === null,
+        isUndefined: updatedTimesheet === undefined
+      })
+      
+      // Try to get the timesheet again to see if it was actually updated
+      let verificationTimesheet
+      try {
+        verificationTimesheet = await getTodayTimesheet(employeeIdStr)
+        console.log("[API] Verification timesheet:", verificationTimesheet)
+      } catch (verifyError) {
+        console.error("[API] Failed to verify timesheet update:", verifyError)
+      }
+      
       return NextResponse.json({ 
-        error: "Không thể cập nhật bản ghi chấm công - kết quả null",
+        error: "Không thể cập nhật bản ghi chấm công - phản hồi không hợp lệ",
         details: {
           timesheetId: timesheet.id,
-          updateData
+          updateData,
+          resultType: typeof updatedTimesheet,
+          verificationTimesheet: verificationTimesheet || "Could not retrieve"
         }
       }, { status: 500 })
     }
+
+    console.log("[API] Successfully updated timesheet:", updatedTimesheet)
 
     // Cập nhật trạng thái nhân viên với error handling
     console.log("[API] Updating employee working status...")
