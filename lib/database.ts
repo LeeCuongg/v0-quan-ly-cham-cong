@@ -316,6 +316,31 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
     const { createClient } = await import("@/lib/supabase/server")
     const supabase = await createClient()
 
+    // Validate timesheet ID
+    if (!id || typeof id !== 'string') {
+      console.error("[DB] Invalid timesheet ID:", id)
+      return null
+    }
+
+    // First, check if the timesheet exists
+    const { data: existingTimesheet, error: fetchError } = await supabase
+      .from("timesheets")
+      .select("*")
+      .eq("id", id)
+      .single()
+
+    if (fetchError) {
+      console.error("[DB] Error fetching existing timesheet:", fetchError)
+      return null
+    }
+
+    if (!existingTimesheet) {
+      console.error("[DB] Timesheet not found with ID:", id)
+      return null
+    }
+
+    console.log("[DB] Existing timesheet found:", JSON.stringify(existingTimesheet, null, 2))
+
     // Nếu có total_hours và hourly_rate, tính toán overtime
     if (updates.total_hours && updates.hourly_rate) {
       const salaryCalc = calculateSalaryWithOvertime(
@@ -332,6 +357,8 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
       updates.salary = salaryCalc.totalPay;
     }
 
+    console.log("[DB] Final update data:", JSON.stringify(updates, null, 2))
+
     const { data, error } = await supabase
       .from("timesheets")
       .update(updates)
@@ -340,14 +367,29 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
       .single()
 
     if (error) {
-      console.error("[DB] Update error:", error)
+      console.error("[DB] ===== SUPABASE UPDATE ERROR =====")
+      console.error("[DB] Error message:", error.message)
+      console.error("[DB] Error details:", error.details)
+      console.error("[DB] Error hint:", error.hint)
+      console.error("[DB] Error code:", error.code)
+      console.error("[DB] ===================================")
       return null
     }
 
-    console.log("[DB] Updated timesheet successfully:", data)
+    if (!data) {
+      console.error("[DB] Update succeeded but no data returned")
+      return null
+    }
+
+    console.log("[DB] ===== UPDATE SUCCESSFUL =====")
+    console.log("[DB] Updated timesheet:", JSON.stringify(data, null, 2))
+    console.log("[DB] ===============================")
+    
     return data
   } catch (error) {
-    console.error("[DB] updateTimesheet error:", error)
+    console.error("[DB] ===== UPDATE EXCEPTION =====")
+    console.error("[DB] Exception:", error)
+    console.error("[DB] ==============================")
     return null
   }
 }

@@ -204,35 +204,61 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Check if update result is null or undefined
-    if (!updatedTimesheet) {
+    // Check if update result is null or undefined OR if the update actually failed
+    if (!updatedTimesheet || updatedTimesheet === null || updatedTimesheet === undefined) {
       console.error("[API] Failed to update timesheet - null/undefined result")
-      console.error("[API] Debug info:", {
-        timesheetId: timesheet.id,
-        updateData,
-        resultType: typeof updatedTimesheet,
-        isNull: updatedTimesheet === null,
-        isUndefined: updatedTimesheet === undefined
-      })
       
       // Try to get the timesheet again to see if it was actually updated
       let verificationTimesheet
       try {
         verificationTimesheet = await getTodayTimesheet(employeeIdStr)
         console.log("[API] Verification timesheet:", verificationTimesheet)
+        
+        // Check if the verification shows the update actually worked
+        if (verificationTimesheet && verificationTimesheet.check_out_time === checkOutTime) {
+          console.log("[API] Update verification successful - using verification data")
+          updatedTimesheet = verificationTimesheet
+        } else {
+          console.error("[API] Update verification failed - timesheet not updated")
+          return NextResponse.json({ 
+            error: "Không thể cập nhật bản ghi chấm công - cập nhật thất bại",
+            details: {
+              timesheetId: timesheet.id,
+              updateData,
+              resultType: typeof updatedTimesheet,
+              verificationTimesheet: verificationTimesheet || "Could not retrieve",
+              expectedCheckOut: checkOutTime,
+              actualCheckOut: verificationTimesheet?.check_out_time || null
+            }
+          }, { status: 500 })
+        }
       } catch (verifyError) {
         console.error("[API] Failed to verify timesheet update:", verifyError)
+        return NextResponse.json({ 
+          error: "Không thể cập nhật bản ghi chấm công - lỗi xác minh",
+          details: {
+            timesheetId: timesheet.id,
+            updateData,
+            resultType: typeof updatedTimesheet,
+            verificationError: (verifyError as Error)?.message
+          }
+        }, { status: 500 })
       }
-      
-      return NextResponse.json({ 
-        error: "Không thể cập nhật bản ghi chấm công - phản hồi không hợp lệ",
-        details: {
-          timesheetId: timesheet.id,
-          updateData,
-          resultType: typeof updatedTimesheet,
-          verificationTimesheet: verificationTimesheet || "Could not retrieve"
-        }
-      }, { status: 500 })
+    } else {
+      // Verify the returned data has the expected checkout time
+      if (!updatedTimesheet.check_out_time || updatedTimesheet.check_out_time !== checkOutTime) {
+        console.error("[API] Update returned data but checkout time mismatch")
+        console.error("[API] Expected:", checkOutTime, "Got:", updatedTimesheet.check_out_time)
+        
+        return NextResponse.json({ 
+          error: "Cập nhật thành công nhưng dữ liệu không khớp",
+          details: {
+            expected: checkOutTime,
+            actual: updatedTimesheet.check_out_time,
+            updatedData: updatedTimesheet
+          }
+        }, { status: 500 })
+      }
     }
 
     console.log("[API] Successfully updated timesheet:", updatedTimesheet)
@@ -284,7 +310,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(response)
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("[API] ===== CHECKOUT ERROR =====")
     console.error("[API] Error:", error)
     console.error("[API] Error stack:", error?.stack)
@@ -292,8 +318,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ 
       error: "Internal server error",
-      details: error?.message || "Unknown error",
-      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      details: error?.message || "Unknown error"
     }, { status: 500 })
   }
 }
