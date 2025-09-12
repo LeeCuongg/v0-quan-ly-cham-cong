@@ -42,7 +42,6 @@ export async function GET(request: NextRequest) {
         totalOvertimeHours: todayOvertimeHours,
         totalOvertimePay: todayOvertimePay,
         overtimeEmployees: todayOvertimeEmployees,
-        avgOvertimeRate: 1.5
       },
       month: {
         totalOvertimeHours: monthOvertimeHours,

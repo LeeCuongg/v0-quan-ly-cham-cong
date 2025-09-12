@@ -20,20 +20,6 @@ interface TimesheetWithOvertime {
   salary: number
   overtime_hourly_rate: number
 }
-  id: string
-  employee_name: string
-  date: string
-  check_in_time: string
-  check_out_time: string | null
-  total_hours: number
-  regular_hours: number
-  overtime_hours: number
-  regular_pay: number
-  overtime_pay: number
-  salary: number
-  isNightShift?: boolean
-  isHoliday?: boolean
-}
 
 export function TimesheetTable() {
   const [timesheets, setTimesheets] = useState<TimesheetWithOvertime[]>([])

@@ -122,7 +122,7 @@ export function DashboardStats() {
     {
       title: "Chi phí Overtime",
       value: overtimeStats.totalOvertimePay.toLocaleString("vi-VN") + "đ",
-      description: `Hệ số: ${overtimeStats.avgOvertimeRate}x`,
+      description: `${overtimeStats.overtimeEmployees} nhân viên`,
       icon: DollarSign,
       color: "text-orange-500",
     },

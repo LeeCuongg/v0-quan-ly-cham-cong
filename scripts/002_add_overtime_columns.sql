@@ -7,13 +7,12 @@ ADD COLUMN IF NOT EXISTS regular_pay DECIMAL(10,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS overtime_pay DECIMAL(10,2) DEFAULT 0;
 
 -- Add overtime rate to employees table
+-- Remove old overtime_rate column if exists
+ALTER TABLE public.employees DROP COLUMN IF EXISTS overtime_rate;
+
+-- Add new overtime_hourly_rate column
 ALTER TABLE public.employees 
 ADD COLUMN IF NOT EXISTS overtime_hourly_rate DECIMAL(10,2) DEFAULT 30000; -- Default 30,000 VND per hour
-
--- Remove old overtime_rate column if exists and add new one
-ALTER TABLE public.employees DROP COLUMN IF EXISTS overtime_rate;
-ALTER TABLE public.employees 
-ADD COLUMN IF NOT EXISTS overtime_hourly_rate DECIMAL(10,2) DEFAULT 30000;
 
 -- Create indexes for overtime columns
 CREATE INDEX IF NOT EXISTS idx_timesheets_overtime_hours ON public.timesheets(overtime_hours);
