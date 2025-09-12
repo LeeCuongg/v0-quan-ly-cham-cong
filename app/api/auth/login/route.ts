@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { findUserByEmail } from "@/lib/database"
 import { encrypt } from "@/lib/auth"
-import { cookies } from "next/headers"
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,18 +38,8 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] Creating session for user:", sessionPayload)
     const session = await encrypt(sessionPayload)
-    const cookieStore = await cookies()
 
-    cookieStore.set("session", session, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24, // 24 hours
-    })
-
-    console.log("[v0] Session cookie set successfully")
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -59,6 +48,19 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     })
+
+    // Set cookie trong response để đảm bảo client nhận được ngay
+    response.cookies.set("session", session, {
+      httpOnly: true,
+      secure: false, // Set false cho development
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24, // 24 hours
+      path: "/",
+    })
+
+    console.log("[v0] Session cookie set successfully")
+
+    return response
   } catch (error) {
     console.error("[v0] Login error:", error)
     return NextResponse.json({ error: "Lỗi server" }, { status: 500 })
