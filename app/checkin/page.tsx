@@ -150,26 +150,21 @@ export default function CheckinPage() {
 
     setLoading(true)
     try {
-      console.log("[CHECKIN] Sending checkout request...")
+      // Tính toán thời gian checkout phía client
+      const now = new Date()
+      const checkoutTime = now.toTimeString().slice(0, 5) // "HH:MM"
+      
+      console.log("[CHECKIN] Sending checkout with time:", checkoutTime)
       
       const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}), // Explicitly send empty object
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          checkoutTime: checkoutTime 
+        }),
       })
 
-      console.log("[CHECKIN] Checkout response status:", response.status)
-      
-      let data
-      try {
-        data = await response.json()
-      } catch (parseError) {
-        console.error("[CHECKIN] Failed to parse response:", parseError)
-        throw new Error("Server response is not valid JSON")
-      }
-      
+      const data = await response.json()
       console.log("[CHECKIN] Check-out response:", data)
 
       if (response.ok) {
@@ -180,13 +175,12 @@ export default function CheckinPage() {
         })
         toast({
           title: "Check-out thành công!",
-          description: `Bạn đã hoàn thành ${data.timesheet?.total_hours || data.timesheet?.totalHours} giờ làm việc`,
+          description: `Bạn đã hoàn thành ${data.timesheet.totalHours || data.timesheet.total_hours} giờ làm việc`,
         })
       } else {
-        console.error("[CHECKIN] Checkout error response:", data)
         toast({
           title: "Lỗi",
-          description: data.error || "Có lỗi xảy ra khi check-out",
+          description: data.error,
           variant: "destructive",
         })
       }
@@ -194,7 +188,7 @@ export default function CheckinPage() {
       console.error("[CHECKIN] Check-out error:", error)
       toast({
         title: "Lỗi",
-        description: error.message || "Không thể kết nối đến server",
+        description: "Không thể kết nối đến server",
         variant: "destructive",
       })
     } finally {

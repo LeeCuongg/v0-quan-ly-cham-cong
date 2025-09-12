@@ -7,19 +7,11 @@ export async function POST(request: NextRequest) {
   try {
     console.log("[API] ===== CHECKOUT REQUEST START =====")
     
-    // Lấy body request với error handling tốt hơn
-    let body = {}
-    try {
-      const text = await request.text()
-      console.log("[API] Request text:", text)
-      
-      if (text.trim()) {
-        body = JSON.parse(text)
-      }
-    } catch (e) {
-      console.log("[API] Body parsing error (using empty object):", e.message)
-      body = {}
-    }
+    // Lấy body request
+    const body = await request.json().catch(e => {
+      console.log("[API] No JSON body or invalid JSON:", e)
+      return {}
+    })
     
     console.log("[API] Request body:", body)
 
@@ -80,17 +72,30 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Tính toán thời gian làm việc
-    const now = new Date()
-    const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000) // UTC+7
-    const checkOutTime = vietnamTime.toTimeString().slice(0, 5) // "HH:MM"
+    // Tính toán thời gian checkout - sử dụng thời gian từ client hoặc server
+    let checkOutTime: string
+    
+    if (body.checkoutTime) {
+      // Nếu client gửi thời gian checkout
+      checkOutTime = body.checkoutTime
+      console.log("[API] Using client checkout time:", checkOutTime)
+    } else {
+      // Tính toán thời gian server với timezone Vietnam
+      try {
+        const now = new Date()
+        // Tạo date object với timezone Vietnam (UTC+7)
+        const vietnamTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}))
+        checkOutTime = vietnamTime.toTimeString().slice(0, 5) // "HH:MM"
+        console.log("[API] Using server checkout time:", checkOutTime)
+      } catch (timezoneError) {
+        console.log("[API] Timezone calculation failed, using UTC+7 fallback")
+        const now = new Date()
+        const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000)
+        checkOutTime = vietnamTime.toTimeString().slice(0, 5)
+      }
+    }
 
-    console.log("[API] Checkout time calculation:", {
-      now: now.toISOString(),
-      vietnamTime: vietnamTime.toISOString(),
-      checkOutTime,
-      checkInTime: timesheet.check_in_time
-    })
+    console.log("[API] Final checkout time:", checkOutTime)
 
     // Sử dụng check_in_time để tính toán
     const checkInTimeStr = timesheet.check_in_time
@@ -188,15 +193,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[API] ===== CHECKOUT ERROR =====")
     console.error("[API] Error:", error)
-    console.error("[API] Error message:", error?.message)
-    console.error("[API] Error name:", error?.name)
     console.error("[API] Error stack:", error?.stack)
     console.error("[API] ============================")
     
     return NextResponse.json({ 
       error: "Internal server error",
       details: error?.message || "Unknown error",
-      errorType: error?.name || "UnknownError",
       stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
     }, { status: 500 })
   }
