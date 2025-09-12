@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { ProtectedPage } from "@/components/protected-page"
 import { useAuth } from "@/components/auth-provider"
-import { Clock, Filter, Download, RefreshCw, Users, Calendar, DollarSign, BarChart3 } from "lucide-react"
+import { Clock, Filter, Download, RefreshCw, Users, Calendar, DollarSign, BarChart3, Edit2, Save, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Employee {
@@ -65,6 +65,11 @@ export default function TimesheetsPage() {
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [debugData, setDebugData] = useState<any>(null)
+  const [editingTimesheet, setEditingTimesheet] = useState<string | null>(null)
+  const [editingValues, setEditingValues] = useState<{
+    check_in: string
+    check_out: string
+  }>({ check_in: "", check_out: "" })
 
   const { user } = useAuth()
   const { toast } = useToast()
@@ -227,6 +232,63 @@ export default function TimesheetsPage() {
     
     // If it's just time format (HH:mm:ss)
     return timeString.slice(0, 5) // Get HH:mm only
+  }
+
+  const formatHoursMinutes = (hours: number) => {
+    const wholeHours = Math.floor(hours)
+    const minutes = Math.round((hours - wholeHours) * 60)
+    
+    if (wholeHours === 0 && minutes === 0) return "0 phút"
+    if (wholeHours === 0) return `${minutes} phút`
+    if (minutes === 0) return `${wholeHours} giờ`
+    return `${wholeHours} giờ ${minutes} phút`
+  }
+
+  const startEdit = (timesheet: Timesheet) => {
+    setEditingTimesheet(timesheet.id)
+    setEditingValues({
+      check_in: timesheet.check_in_time || timesheet.check_in || "",
+      check_out: timesheet.check_out_time || timesheet.check_out || ""
+    })
+  }
+
+  const cancelEdit = () => {
+    setEditingTimesheet(null)
+    setEditingValues({ check_in: "", check_out: "" })
+  }
+
+  const saveEdit = async (timesheetId: string) => {
+    try {
+      const response = await fetch(`/api/timesheets/${timesheetId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          check_in: editingValues.check_in,
+          check_out: editingValues.check_out,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Cập nhật thành công",
+          description: "Thời gian chấm công đã được cập nhật",
+        })
+        setEditingTimesheet(null)
+        setEditingValues({ check_in: "", check_out: "" })
+        fetchTimesheets() // Refresh data
+      } else {
+        throw new Error("Failed to update timesheet")
+      }
+    } catch (error) {
+      console.error("Error updating timesheet:", error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật thời gian chấm công",
+        variant: "destructive",
+      })
+    }
   }
 
   const getStatusBadge = (timesheet: Timesheet) => {
@@ -475,10 +537,18 @@ export default function TimesheetsPage() {
                       <th className="text-left p-3 font-medium">Lương overtime</th>
                       <th className="text-left p-3 font-medium">Tổng lương</th>
                       <th className="text-left p-3 font-medium">Trạng thái</th>
+                      <th className="text-left p-3 font-medium">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {timesheets.map((timesheet, index) => (
+                    {timesheets
+                      .sort((a, b) => {
+                        // Sort by check-in time from oldest to newest
+                        const aCheckIn = a.check_in_time || a.check_in || ""
+                        const bCheckIn = b.check_in_time || b.check_in || ""
+                        return aCheckIn.localeCompare(bCheckIn)
+                      })
+                      .map((timesheet, index) => (
                       <tr key={timesheet.id || index} className="border-b hover:bg-muted/50 transition-colors">
                         <td className="p-3">
                           <div className="font-medium">{timesheet.employee_name}</div>
@@ -491,23 +561,41 @@ export default function TimesheetsPage() {
                           </div>
                         </td>
                         <td className="p-3">
-                          <div className="font-mono text-sm">
-                            {formatTime(timesheet.check_in_time || timesheet.check_in)}
-                          </div>
+                          {editingTimesheet === timesheet.id ? (
+                            <Input
+                              type="time"
+                              value={editingValues.check_in}
+                              onChange={(e) => setEditingValues(prev => ({ ...prev, check_in: e.target.value }))}
+                              className="w-24"
+                            />
+                          ) : (
+                            <div className="font-mono text-sm">
+                              {formatTime(timesheet.check_in_time || timesheet.check_in)}
+                            </div>
+                          )}
                         </td>
                         <td className="p-3">
-                          <div className="font-mono text-sm">
-                            {formatTime(timesheet.check_out_time || timesheet.check_out)}
-                          </div>
+                          {editingTimesheet === timesheet.id ? (
+                            <Input
+                              type="time"
+                              value={editingValues.check_out}
+                              onChange={(e) => setEditingValues(prev => ({ ...prev, check_out: e.target.value }))}
+                              className="w-24"
+                            />
+                          ) : (
+                            <div className="font-mono text-sm">
+                              {formatTime(timesheet.check_out_time || timesheet.check_out)}
+                            </div>
+                          )}
                         </td>
                         <td className="p-3">
                           <div className="font-semibold text-blue-600">
-                            {(timesheet.total_hours || timesheet.hours_worked || 0).toFixed(1)}h
+                            {formatHoursMinutes(timesheet.total_hours || timesheet.hours_worked || 0)}
                           </div>
                         </td>
                         <td className="p-3">
                           <div className="font-semibold text-orange-600">
-                            {(timesheet.overtime_hours || 0).toFixed(1)}h
+                            {formatHoursMinutes(timesheet.overtime_hours || 0)}
                           </div>
                         </td>
                         <td className="p-3">
@@ -527,6 +615,22 @@ export default function TimesheetsPage() {
                         </td>
                         <td className="p-3">
                           {getStatusBadge(timesheet)}
+                        </td>
+                        <td className="p-3">
+                          {editingTimesheet === timesheet.id ? (
+                            <div className="flex gap-1">
+                              <Button size="sm" onClick={() => saveEdit(timesheet.id)} className="bg-green-600 hover:bg-green-700">
+                                <Save className="w-3 h-3" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={cancelEdit}>
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => startEdit(timesheet)}>
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}
