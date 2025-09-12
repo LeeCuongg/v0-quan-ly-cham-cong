@@ -310,58 +310,63 @@ export async function createTimesheet(timesheetData: any): Promise<any | null> {
 export async function updateTimesheet(id: string, updates: any): Promise<any | null> {
   console.log("[DB] ===== UPDATE TIMESHEET START =====")
   console.log("[DB] Timesheet ID:", id)
-  console.log("[DB] Updates:", JSON.stringify(updates, null, 2))
+  console.log("[DB] Raw updates:", JSON.stringify(updates, null, 2))
   
   try {
     const { createClient } = await import("@/lib/supabase/server")
     const supabase = await createClient()
 
-    // Validate timesheet ID
+    // Tạo object update với tên cột đúng theo database schema
+    const dbUpdates: any = {}
+
+    // Map các field name cho đúng với database
+    if (updates.check_out_time) {
+      // Cho cột check_out_time (TIME format)
+      dbUpdates.check_out_time = updates.check_out_time
+      // Tạo timestamp cho check_out nếu có date
+      const currentDate = new Date().toISOString().split('T')[0]
+      dbUpdates.check_out = `${currentDate} ${updates.check_out_time}:00+07:00`
+    }
+
+    if (updates.total_hours !== undefined) {
+      dbUpdates.total_hours = updates.total_hours
+      dbUpdates.hours_worked = updates.total_hours // Map to hours_worked column
+    }
+
+    if (updates.salary !== undefined) {
+      dbUpdates.salary = updates.salary
+    }
+
+    if (updates.regular_hours !== undefined) {
+      dbUpdates.regular_hours = updates.regular_hours
+    }
+
+    if (updates.overtime_hours !== undefined) {
+      dbUpdates.overtime_hours = updates.overtime_hours
+    }
+
+    if (updates.regular_pay !== undefined) {
+      dbUpdates.regular_pay = updates.regular_pay
+    }
+
+    if (updates.overtime_pay !== undefined) {
+      dbUpdates.overtime_pay = updates.overtime_pay
+    }
+
+    // Thêm updated_at timestamp
+    dbUpdates.updated_at = new Date().toISOString()
+
+    console.log("[DB] Mapped DB updates:", JSON.stringify(dbUpdates, null, 2))
+
+    // Kiểm tra ID trước khi update
     if (!id || typeof id !== 'string') {
       console.error("[DB] Invalid timesheet ID:", id)
       return null
     }
 
-    // First, check if the timesheet exists
-    const { data: existingTimesheet, error: fetchError } = await supabase
-      .from("timesheets")
-      .select("*")
-      .eq("id", id)
-      .single()
-
-    if (fetchError) {
-      console.error("[DB] Error fetching existing timesheet:", fetchError)
-      return null
-    }
-
-    if (!existingTimesheet) {
-      console.error("[DB] Timesheet not found with ID:", id)
-      return null
-    }
-
-    console.log("[DB] Existing timesheet found:", JSON.stringify(existingTimesheet, null, 2))
-
-    // Nếu có total_hours và hourly_rate, tính toán overtime
-    if (updates.total_hours && updates.hourly_rate) {
-      const salaryCalc = calculateSalaryWithOvertime(
-        updates.total_hours,
-        updates.hourly_rate,
-        updates.overtime_hourly_rate || 30000
-      );
-
-      // Cập nhật với thông tin overtime
-      updates.regular_hours = salaryCalc.regularHours;
-      updates.overtime_hours = salaryCalc.overtimeHours;
-      updates.regular_pay = salaryCalc.regularPay;
-      updates.overtime_pay = salaryCalc.overtimePay;
-      updates.salary = salaryCalc.totalPay;
-    }
-
-    console.log("[DB] Final update data:", JSON.stringify(updates, null, 2))
-
     const { data, error } = await supabase
       .from("timesheets")
-      .update(updates)
+      .update(dbUpdates)
       .eq("id", id)
       .select()
       .single()
@@ -372,24 +377,22 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
       console.error("[DB] Error details:", error.details)
       console.error("[DB] Error hint:", error.hint)
       console.error("[DB] Error code:", error.code)
+      console.error("[DB] Failed updates:", JSON.stringify(dbUpdates, null, 2))
       console.error("[DB] ===================================")
       return null
     }
 
-    if (!data) {
-      console.error("[DB] Update succeeded but no data returned")
-      return null
-    }
-
-    console.log("[DB] ===== UPDATE SUCCESSFUL =====")
+    console.log("[DB] ===== UPDATE SUCCESS =====")
     console.log("[DB] Updated timesheet:", JSON.stringify(data, null, 2))
-    console.log("[DB] ===============================")
-    
+    console.log("[DB] ===========================")
+    console.log("[DB] ===== UPDATE TIMESHEET END =====")
     return data
+    
   } catch (error) {
     console.error("[DB] ===== UPDATE EXCEPTION =====")
     console.error("[DB] Exception:", error)
-    console.error("[DB] ==============================")
+    console.error("[DB] Exception stack:", (error as Error)?.stack)
+    console.error("[DB] ===============================")
     return null
   }
 }
