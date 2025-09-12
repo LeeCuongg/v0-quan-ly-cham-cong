@@ -67,10 +67,15 @@ export async function POST(request: NextRequest) {
     const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000) // UTC+7
     const checkInTime = vietnamTime.toTimeString().slice(0, 5) // "HH:MM"
     const today = vietnamTime.toISOString().split("T")[0] // "YYYY-MM-DD"
+    
+    // Add timestamp to make each entry unique
+    const timestamp = Date.now()
+    const sessionId = `${today}_${checkInTime.replace(':', '')}_${timestamp}`
 
     console.log("[v0] Current Vietnam time:", vietnamTime.toISOString())
     console.log("[v0] Check-in time:", checkInTime)
     console.log("[v0] Today date:", today)
+    console.log("[v0] Session ID:", sessionId)
 
     const timesheetData = {
       employee_id: employeeIdStr,
@@ -81,34 +86,45 @@ export async function POST(request: NextRequest) {
       salary: 0,
       employee_name: employee.name,
       hours_worked: 0,
+      session_id: sessionId, // Add unique session identifier
     }
 
     console.log("[v0] Timesheet data to create:", timesheetData)
 
     // Step 5: Create new timesheet entry
     console.log("[v0] Step 5: Creating new timesheet entry...")
-    const newTimesheet = await createTimesheet(timesheetData)
-    console.log("[v0] Create timesheet result:", newTimesheet)
+    try {
+      const newTimesheet = await createTimesheet(timesheetData)
+      console.log("[v0] Create timesheet result:", newTimesheet)
 
-    if (!newTimesheet) {
-      console.log("[v0] Failed to create timesheet")
-      return NextResponse.json({ error: "Failed to create timesheet" }, { status: 500 })
+      if (!newTimesheet) {
+        console.log("[v0] Failed to create timesheet - returned null/undefined")
+        return NextResponse.json({ error: "Failed to create timesheet" }, { status: 500 })
+      }
+
+      // Step 6: Update employee status
+      console.log("[v0] Step 6: Updating employee status...")
+      const updateResult = await updateUser(employeeIdStr, { is_currently_working: true })
+      console.log("[v0] Update user result:", updateResult)
+
+      console.log("[v0] ===== CHECKIN SUCCESS =====")
+      return NextResponse.json({
+        success: true,
+        message: "Checked in successfully",
+        timesheet: {
+          ...newTimesheet,
+          checkIn: checkInTime, // Map về checkIn cho frontend
+        },
+      })
+    } catch (createError) {
+      console.error("[v0] Error creating timesheet:", createError)
+      console.error("[v0] Create error details:", (createError as Error)?.message)
+      console.error("[v0] Create error stack:", (createError as Error)?.stack)
+      return NextResponse.json({ 
+        error: "Failed to create timesheet",
+        details: (createError as Error)?.message 
+      }, { status: 500 })
     }
-
-    // Step 6: Update employee status
-    console.log("[v0] Step 6: Updating employee status...")
-    const updateResult = await updateUser(employeeIdStr, { is_currently_working: true })
-    console.log("[v0] Update user result:", updateResult)
-
-    console.log("[v0] ===== CHECKIN SUCCESS =====")
-    return NextResponse.json({
-      success: true,
-      message: "Checked in successfully",
-      timesheet: {
-        ...newTimesheet,
-        checkIn: checkInTime, // Map về checkIn cho frontend
-      },
-    })
   } catch (error) {
     console.error("[v0] ===== CHECKIN ERROR =====")
     console.error("[v0] Error details:", error)
