@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
-import { calculateSalaryWithOvertime } from "@/lib/database"
+import { getAllEmployees, getTodayTimesheet, updateTimesheet, updateUser, calculateSalaryWithOvertime } from "@/lib/database"
 
 export async function POST(request: NextRequest) {
   try {
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         checkInTime: checkInTimeStr,
         checkOutTime: checkOutTime,
         totalHours: totalHours.toFixed(1),
-        salary: Math.round(salary),
+        salary: Math.round(salaryCalculation.totalPay),
         hourlyRate: employee.hourly_rate
       }
     }

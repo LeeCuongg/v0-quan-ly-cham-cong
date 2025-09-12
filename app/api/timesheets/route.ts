@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server"
-import { getAllTimesheets, getTimesheetsByEmployeeId } from "@/lib/database"
 import { type NextRequest, NextResponse } from "next/server"
+import { getAllTimesheets, getTimesheetsByEmployeeId } from "@/lib/database"
 import { getSession, isManager } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 

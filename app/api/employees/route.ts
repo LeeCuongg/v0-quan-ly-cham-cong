@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { getAllEmployees } from "@/lib/database"
+import { getSession, isManager } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/server"
 
 export async function GET() {
   try {

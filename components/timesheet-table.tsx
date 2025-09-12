@@ -1,23 +1,25 @@
-"use cliinterface TimesheetWithOvertime {
-  id: string;
-  employee_name: string;
-  date: string;
-  check_in_time: string;
-  check_out_time: string | null;
-  total_hours: number;
-  regular_hours: number;
-  overtime_hours: number;
-  regular_pay: number;
-  overtime_pay: number;
-  salary: number;
-  overtime_rate: number;
-}{ useState, useEffect } from "react"
+"use client"
+
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Clock, DollarSign } from "lucide-react"
 
 interface TimesheetWithOvertime {
+  id: string
+  employee_name: string
+  date: string
+  check_in_time: string
+  check_out_time: string | null
+  total_hours: number
+  regular_hours: number
+  overtime_hours: number
+  regular_pay: number
+  overtime_pay: number
+  salary: number
+  overtime_rate: number
+}
   id: string
   employee_name: string
   date: string
