@@ -50,7 +50,6 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
               id="name"
               value={formData.name}
               onChange={(e) => handleChange("name", e.target.value)}
-              required
             />
           </div>
 
@@ -58,10 +57,8 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
-              type="email"
               value={formData.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              required
             />
           </div>
 
@@ -96,11 +93,8 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
               <Input
                 id="hourly_rate"
                 type="number"
-                min="0"
-                step="1000"
                 value={formData.hourly_rate}
                 onChange={(e) => handleChange("hourly_rate", parseFloat(e.target.value) || 0)}
-                required
               />
             </div>
 
@@ -109,11 +103,8 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
               <Input
                 id="overtime_hourly_rate"
                 type="number"
-                min="0"
-                step="1000"
                 value={formData.overtime_hourly_rate}
                 onChange={(e) => handleChange("overtime_hourly_rate", parseFloat(e.target.value) || 30000)}
-                required
               />
               <p className="text-xs text-muted-foreground">
                 Ví dụ: 30000 = 30,000đ/giờ ngoài giờ
@@ -125,6 +116,15 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
             <Button type="submit" className="flex-1">
               {employee ? "Cập nhật" : "Thêm mới"}
             </Button>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Hủy
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
             <Button type="button" variant="outline" onClick={onCancel}>
               Hủy
             </Button>
