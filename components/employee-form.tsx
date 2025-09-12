@@ -96,11 +96,11 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
               <Input
                 id="hourly_rate"
                 type="number"
-                step="any"
+                min="0"
+                step="1000"
                 value={formData.hourly_rate}
                 onChange={(e) => handleChange("hourly_rate", parseFloat(e.target.value) || 0)}
                 required
-                placeholder="Ví dụ: 25000 hoặc 23.3333"
               />
             </div>
 
@@ -109,12 +109,15 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
               <Input
                 id="overtime_hourly_rate"
                 type="number"
-                step="any"
+                min="0"
+                step="1000"
                 value={formData.overtime_hourly_rate}
                 onChange={(e) => handleChange("overtime_hourly_rate", parseFloat(e.target.value) || 30000)}
                 required
-                placeholder="Ví dụ: 30000 hoặc 35.5"
               />
+              <p className="text-xs text-muted-foreground">
+                Ví dụ: 30000 = 30,000đ/giờ ngoài giờ
+              </p>
             </div>
           </div>
 
