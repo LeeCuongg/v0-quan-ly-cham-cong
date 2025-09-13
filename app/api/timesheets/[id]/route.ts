@@ -197,19 +197,4 @@ export async function PATCH(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
-}
-    if (!updated) {
-      console.error("[TS PATCH] Failed to update timesheet - null result")
-      return NextResponse.json({ error: "Failed to update timesheet" }, { status: 500 })
-    }
 
-    // Trả về bản ghi đã cập nhật (DB source of truth)
-    return NextResponse.json(updated)
-  } catch (error) {
-    console.error("Error updating timesheet:", error)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
-  }
-}
