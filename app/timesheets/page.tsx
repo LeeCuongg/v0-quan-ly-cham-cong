@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { ProtectedPage } from "@/components/protected-page"
 import { useAuth } from "@/components/auth-provider"
-import { Clock, Filter, Download, RefreshCw, Users, Calendar, DollarSign, BarChart3, Edit2, Save, X } from "lucide-react"
+import { Calendar, Clock, DollarSign, Filter, Download, RefreshCw, Users, Edit2, Save, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Employee {
@@ -329,7 +329,6 @@ export default function TimesheetsPage() {
 
   return (
     <ProtectedPage requiredRole="manager">
-      {/* Remove the duplicate div and Sidebar - ProtectedPage already handles this */}
       <main className="p-4 lg:p-8">
         {/* Header */}
         <div className="mb-8">

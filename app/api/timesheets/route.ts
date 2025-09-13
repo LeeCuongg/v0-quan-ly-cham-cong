@@ -85,20 +85,43 @@ export async function GET(request: NextRequest) {
       const dailyRegularHours = Math.min(totalHours, 10)
       const dailyOvertimeHours = Math.max(0, totalHours - 10)
       
-      // Phân bổ overtime theo tỷ lệ giờ của từng ca
-      shifts.forEach((timesheet: any, index: number) => {
+      // Sắp xếp shifts theo thời gian check-in để xác định ca cuối cùng
+      const sortedShifts = shifts.sort((a, b) => {
+        const timeA = a.check_in_time || "00:00:00"
+        const timeB = b.check_in_time || "00:00:00"
+        return timeA.localeCompare(timeB)
+      })
+      
+      // Xác định ca cuối cùng (check-in muộn nhất)
+      const lastShiftIndex = sortedShifts.length - 1
+      
+      sortedShifts.forEach((timesheet: any, index: number) => {
         const shiftHours = timesheet.total_hours || 0
-        const shiftRatio = totalHours > 0 ? shiftHours / totalHours : 0
-        
-        // Phân bổ regular và overtime cho ca này
-        const shiftRegularHours = Math.min(shiftHours, dailyRegularHours * shiftRatio)
-        const shiftOvertimeHours = dailyOvertimeHours * shiftRatio
-        
         const hourlyRate = timesheet.employees?.hourly_rate || 0
         const overtimeRate = timesheet.employees?.overtime_hourly_rate || 30000
         
-        const regularPay = shiftRegularHours * hourlyRate
-        const overtimePay = shiftOvertimeHours * overtimeRate
+        let shiftRegularHours = shiftHours
+        let shiftOvertimeHours = 0
+        let regularPay = shiftHours * hourlyRate
+        let overtimePay = 0
+        
+        // Chỉ ca cuối cùng mới được tính overtime
+        if (index === lastShiftIndex && dailyOvertimeHours > 0) {
+          // Ca cuối cùng: phân bổ regular hours theo tỷ lệ và gán tất cả overtime cho ca này
+          const shiftRatio = totalHours > 0 ? shiftHours / totalHours : 0
+          shiftRegularHours = Math.min(shiftHours, dailyRegularHours * shiftRatio)
+          shiftOvertimeHours = dailyOvertimeHours // Tất cả overtime cho ca cuối
+          
+          regularPay = shiftRegularHours * hourlyRate
+          overtimePay = shiftOvertimeHours * overtimeRate
+        } else {
+          // Các ca khác: chỉ có regular pay
+          shiftRegularHours = shiftHours
+          shiftOvertimeHours = 0
+          regularPay = shiftHours * hourlyRate
+          overtimePay = 0
+        }
+        
         const totalSalary = regularPay + overtimePay
         
         transformedData.push({

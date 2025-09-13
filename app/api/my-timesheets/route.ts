@@ -77,16 +77,42 @@ export async function GET(request: NextRequest) {
       const dailyRegularHours = Math.min(totalHours, 10)
       const dailyOvertimeHours = Math.max(0, totalHours - 10)
       
-      // Phân bổ overtime theo tỷ lệ giờ của từng ca
-      shifts.forEach((timesheet: any, index: number) => {
+      // Sắp xếp shifts theo thời gian check-in để xác định ca cuối cùng
+      const sortedShifts = shifts.sort((a, b) => {
+        const timeA = a.check_in_time || a.check_in || "00:00:00"
+        const timeB = b.check_in_time || b.check_in || "00:00:00"
+        return timeA.localeCompare(timeB)
+      })
+      
+      // Xác định ca cuối cùng (check-in muộn nhất)
+      const lastShiftIndex = sortedShifts.length - 1
+      
+      sortedShifts.forEach((timesheet: any, index: number) => {
         const shiftHours = timesheet.total_hours || timesheet.hours_worked || 0
-        const shiftRatio = totalHours > 0 ? shiftHours / totalHours : 0
         
-        // Phân bổ regular và overtime cho ca này
-        const shiftRegularHours = Math.min(shiftHours, dailyRegularHours * shiftRatio)
-        const shiftOvertimeHours = dailyOvertimeHours * shiftRatio
+        let shiftRegularHours = shiftHours
+        let shiftOvertimeHours = 0
+        let regularPay = shiftHours * hourlyRate
+        let overtimePay = 0
         
-        // Tính lương sử dụng salary-utils
+        // Chỉ ca cuối cùng mới được tính overtime
+        if (index === lastShiftIndex && dailyOvertimeHours > 0) {
+          // Ca cuối cùng: phân bổ regular hours theo tỷ lệ và gán tất cả overtime cho ca này
+          const shiftRatio = totalHours > 0 ? shiftHours / totalHours : 0
+          shiftRegularHours = Math.min(shiftHours, dailyRegularHours * shiftRatio)
+          shiftOvertimeHours = dailyOvertimeHours // Tất cả overtime cho ca cuối
+          
+          regularPay = shiftRegularHours * hourlyRate
+          overtimePay = shiftOvertimeHours * overtimeHourlyRate
+        } else {
+          // Các ca khác: chỉ có regular pay
+          shiftRegularHours = shiftHours
+          shiftOvertimeHours = 0
+          regularPay = shiftHours * hourlyRate
+          overtimePay = 0
+        }
+        
+        // Tính lương sử dụng salary-utils cho tổng lương
         const salaryCalc = calculateDailySalary(shiftHours, hourlyRate, overtimeHourlyRate)
         
         processedTimesheets.push({
@@ -95,9 +121,10 @@ export async function GET(request: NextRequest) {
           hours_worked: Math.round(shiftHours * 100) / 100,
           regular_hours: Math.round(shiftRegularHours * 100) / 100,
           overtime_hours: Math.round(shiftOvertimeHours * 100) / 100,
-          regular_pay: salaryCalc.regularPay,
-          overtime_pay: Math.round(shiftOvertimeHours * overtimeHourlyRate),
-          overtime_salary: Math.round(shiftOvertimeHours * overtimeHourlyRate),
+          regular_pay: Math.round(regularPay),
+          overtime_pay: Math.round(overtimePay),
+          overtime_salary: Math.round(overtimePay),
+          salary: Math.round(regularPay + overtimePay), // Tổng lương thực tế của ca này
           // Thông tin bổ sung về ngày
           daily_total_hours: Math.round(totalHours * 100) / 100,
           daily_regular_hours: Math.round(dailyRegularHours * 100) / 100,
