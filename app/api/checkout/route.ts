@@ -130,8 +130,6 @@ export async function POST(request: NextRequest) {
       regular_pay: salaryCalculation.regularPay,
       overtime_pay: salaryCalculation.overtimePay,
       salary: salaryCalculation.totalPay,
-      hourly_rate: employee.hourly_rate,
-      overtime_hourly_rate: employee.overtime_hourly_rate || 30000,
     }
 
     console.log("[API] Update data:", updateData)
