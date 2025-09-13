@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getTimesheetsByEmployeeId } from "@/lib/database"
+import { getTimesheetsByEmployeeId, findUserById } from "@/lib/database"
 import { getSession } from "@/lib/auth"
+import { calculateDailySalary } from "@/lib/salary-utils"
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,6 +24,17 @@ export async function GET(request: NextRequest) {
 
     const employeeIdStr = session.userId
     console.log("[API] Employee ID:", employeeIdStr)
+    
+    // Get employee info để lấy hourly_rate và overtime_hourly_rate
+    const employee = await findUserById(employeeIdStr)
+    if (!employee) {
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 })
+    }
+    
+    const hourlyRate = employee.hourly_rate || 0
+    const overtimeHourlyRate = employee.overtime_hourly_rate || 30000 // Default 30k/hour
+    
+    console.log("[API] Employee rates:", { hourlyRate, overtimeHourlyRate })
     
     let filteredTimesheets = await getTimesheetsByEmployeeId(employeeIdStr)
     console.log("[API] Raw timesheets from DB:", filteredTimesheets.length)
@@ -74,12 +86,18 @@ export async function GET(request: NextRequest) {
         const shiftRegularHours = Math.min(shiftHours, dailyRegularHours * shiftRatio)
         const shiftOvertimeHours = dailyOvertimeHours * shiftRatio
         
+        // Tính lương sử dụng salary-utils
+        const salaryCalc = calculateDailySalary(shiftHours, hourlyRate, overtimeHourlyRate)
+        
         processedTimesheets.push({
           ...timesheet,
           total_hours: Math.round(shiftHours * 100) / 100,
           hours_worked: Math.round(shiftHours * 100) / 100,
           regular_hours: Math.round(shiftRegularHours * 100) / 100,
           overtime_hours: Math.round(shiftOvertimeHours * 100) / 100,
+          regular_pay: salaryCalc.regularPay,
+          overtime_pay: Math.round(shiftOvertimeHours * overtimeHourlyRate),
+          overtime_salary: Math.round(shiftOvertimeHours * overtimeHourlyRate),
           // Thông tin bổ sung về ngày
           daily_total_hours: Math.round(totalHours * 100) / 100,
           daily_regular_hours: Math.round(dailyRegularHours * 100) / 100,
@@ -94,7 +112,7 @@ export async function GET(request: NextRequest) {
     const totalHours = processedTimesheets.reduce((sum, ts) => sum + (ts.total_hours || ts.hours_worked || 0), 0)
     const totalSalary = processedTimesheets.reduce((sum, ts) => sum + (ts.salary || 0), 0)
     const totalOvertimeHours = processedTimesheets.reduce((sum, ts) => sum + (ts.overtime_hours || 0), 0)
-    const totalOvertimeSalary = processedTimesheets.reduce((sum, ts) => sum + (ts.overtime_salary || 0), 0)
+    const totalOvertimeSalary = processedTimesheets.reduce((sum, ts) => sum + (ts.overtime_pay || ts.overtime_salary || 0), 0)
     const totalDays = processedTimesheets.length
     const avgHoursPerDay = totalDays > 0 ? totalHours / totalDays : 0
 
@@ -131,7 +149,7 @@ export async function GET(request: NextRequest) {
     console.error("[API] My timesheets error:", error)
     return NextResponse.json({ 
       error: "Internal server error",
-      details: error.message 
+      details: (error as Error).message 
     }, { status: 500 })
   }
 }
