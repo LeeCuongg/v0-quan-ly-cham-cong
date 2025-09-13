@@ -97,8 +97,18 @@ export async function createUser(userData: any): Promise<any | null> {
 
   try {
     const { createClient } = await import("@/lib/supabase/server")
+    const bcrypt = eval('require("bcryptjs")')
     const supabase = await createClient()
     console.log("[v0] DB: Supabase client created successfully")
+
+    // Hash password nếu có
+    if (userData.password) {
+      const saltRounds = 10
+      const hashedPassword = await bcrypt.hash(userData.password, saltRounds)
+      userData.password = hashedPassword
+      userData.password_hash = hashedPassword
+      console.log("[v0] DB: Password hashed successfully")
+    }
 
     const { data, error } = await supabase.from("employees").insert([userData]).select().single()
     const duration = Date.now() - startTime

@@ -20,8 +20,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 })
     }
 
-    // So sánh trực tiếp với cột password (chỉ để test)
-    const isValidPassword = password === user.password
+    // Sử dụng bcrypt để verify password đã hash
+    const bcrypt = eval('require("bcryptjs")')
+    const isValidPassword = await bcrypt.compare(password, user.password)
     console.log("[v0] Password validation result:", isValidPassword)
 
     if (!isValidPassword) {
