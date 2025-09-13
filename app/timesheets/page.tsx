@@ -539,10 +539,14 @@ export default function TimesheetsPage() {
                   <tbody>
                     {timesheets
                       .sort((a, b) => {
-                        // Sort by check-in time from oldest to newest
+                        // First sort by date (newest first)
+                        const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
+                        if (dateCompare !== 0) return dateCompare
+                        
+                        // Then sort by check-in time (latest first within same day)
                         const aCheckIn = a.check_in_time || a.check_in || ""
                         const bCheckIn = b.check_in_time || b.check_in || ""
-                        return aCheckIn.localeCompare(bCheckIn)
+                        return bCheckIn.localeCompare(aCheckIn)
                       })
                       .map((timesheet, index) => (
                       <tr key={timesheet.id || index} className="border-b hover:bg-muted/50 transition-colors">
