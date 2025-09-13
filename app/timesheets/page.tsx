@@ -553,7 +553,6 @@ export default function TimesheetsPage() {
                         <td className="p-3">
                           <div className="font-medium">{formatDate(timesheet.date)}</div>
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <span>Ca {timesheet.shift_number || 1}</span>
                             {(timesheet.total_shifts_in_day || 1) > 1 && (
                               <Badge variant="secondary" className="text-xs px-1 py-0">
                                 {timesheet.total_shifts_in_day} ca
