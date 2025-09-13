@@ -36,7 +36,12 @@ interface Timesheet {
   overtime_pay: number
   salary: number
   overtime_salary: number
-  shifts_count?: number // Số ca làm việc trong ngày
+  // Thông tin về ngày
+  daily_total_hours: number
+  daily_regular_hours: number
+  daily_overtime_hours: number
+  shift_number: number
+  total_shifts_in_day: number
   created_at: string
   updated_at: string
 }
@@ -521,14 +526,13 @@ export default function TimesheetsPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left p-3 font-medium">Nhân viên</th>
-                      <th className="text-left p-3 font-medium">Ngày</th>
+                      <th className="text-left p-3 font-medium">Ngày / Ca</th>
                       <th className="text-left p-3 font-medium">Giờ đến</th>
                       <th className="text-left p-3 font-medium">Giờ về</th>
-                      <th className="text-left p-3 font-medium">Tổng giờ</th>
-                      <th className="text-left p-3 font-medium">Giờ TC</th>
-                      <th className="text-left p-3 font-medium">Lương CB</th>
-                      <th className="text-left p-3 font-medium">Lương TC</th>
-                      <th className="text-left p-3 font-medium">Tổng lương</th>
+                      <th className="text-left p-3 font-medium">Giờ ca</th>
+                      <th className="text-left p-3 font-medium">Tổng giờ/ngày</th>
+                      <th className="text-left p-3 font-medium">TC/ngày</th>
+                      <th className="text-left p-3 font-medium">Lương ca</th>
                       <th className="text-left p-3 font-medium">Trạng thái</th>
                       <th className="text-left p-3 font-medium">Sửa</th>
                     </tr>
@@ -548,8 +552,13 @@ export default function TimesheetsPage() {
                         </td>
                         <td className="p-3">
                           <div className="font-medium">{formatDate(timesheet.date)}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(timesheet.date).toLocaleDateString("vi-VN", { weekday: "long" })}
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <span>Ca {timesheet.shift_number || 1}</span>
+                            {(timesheet.total_shifts_in_day || 1) > 1 && (
+                              <Badge variant="secondary" className="text-xs px-1 py-0">
+                                {timesheet.total_shifts_in_day} ca
+                              </Badge>
+                            )}
                           </div>
                         </td>
                         <td className="p-3">
@@ -584,25 +593,29 @@ export default function TimesheetsPage() {
                           <div className="font-semibold text-blue-600">
                             {formatHoursMinutes(timesheet.total_hours || timesheet.hours_worked || 0)}
                           </div>
+                          <div className="text-xs text-muted-foreground">Ca này</div>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-semibold text-purple-600">
+                            {formatHoursMinutes(timesheet.daily_total_hours || 0)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Tổng ngày</div>
                         </td>
                         <td className="p-3">
                           <div className="font-semibold text-orange-600">
-                            {formatHoursMinutes(timesheet.overtime_hours || 0)}
+                            {formatHoursMinutes(timesheet.daily_overtime_hours || 0)}
                           </div>
+                          <div className="text-xs text-muted-foreground">TC ngày</div>
                         </td>
                         <td className="p-3">
                           <div className="font-semibold text-green-600">
-                            {(timesheet.regular_pay || 0).toLocaleString("vi-VN")}đ
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="font-semibold text-orange-600">
-                            {(timesheet.overtime_pay || 0).toLocaleString("vi-VN")}đ
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="font-semibold text-primary">
                             {((timesheet.regular_pay || 0) + (timesheet.overtime_pay || 0)).toLocaleString("vi-VN")}đ
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            CB: {(timesheet.regular_pay || 0).toLocaleString("vi-VN")}đ
+                            {(timesheet.overtime_pay || 0) > 0 && (
+                              <div>TC: {(timesheet.overtime_pay || 0).toLocaleString("vi-VN")}đ</div>
+                            )}
                           </div>
                         </td>
                         <td className="p-3">

@@ -36,61 +36,59 @@ export async function GET(request: NextRequest) {
       console.log("[API] After end date filter:", filteredTimesheets.length)
     }
 
-    // Group by date để gộp nhiều ca làm việc trong cùng 1 ngày
-    const groupedTimesheets = new Map<string, any>()
+    // Group by date để tính tổng giờ trong ngày và phân bổ overtime
+    const dailyTotals = new Map<string, { totalHours: number, shifts: any[] }>()
     
+    // Bước 1: Tính tổng giờ cho mỗi ngày
     filteredTimesheets.forEach((timesheet: any) => {
       const key = timesheet.date
       
-      if (groupedTimesheets.has(key)) {
-        // Gộp với timesheet đã có
-        const existing = groupedTimesheets.get(key)
-        
-        // Cộng tổng giờ làm việc
-        const newTotalHours = (existing.total_hours || existing.hours_worked || 0) + (timesheet.total_hours || timesheet.hours_worked || 0)
-        
-        // Tính lại regular và overtime hours
-        const regularHours = Math.min(newTotalHours, 10)
-        const overtimeHours = Math.max(0, newTotalHours - 10)
-        
-        // Cập nhật thời gian check-in sớm nhất và check-out muộn nhất
-        const earliestCheckIn = [existing.check_in_time, timesheet.check_in_time]
-          .filter(Boolean)
-          .sort()[0] || null
-        const latestCheckOut = [existing.check_out_time, timesheet.check_out_time]
-          .filter(Boolean)
-          .sort()
-          .reverse()[0] || null
-        
-        groupedTimesheets.set(key, {
-          ...existing,
-          check_in_time: earliestCheckIn,
-          check_out_time: latestCheckOut,
-          total_hours: Math.round(newTotalHours * 100) / 100,
-          hours_worked: Math.round(newTotalHours * 100) / 100,
-          regular_hours: Math.round(regularHours * 100) / 100,
-          overtime_hours: Math.round(overtimeHours * 100) / 100,
-          shifts_count: existing.shifts_count + 1,
-        })
+      if (dailyTotals.has(key)) {
+        const existing = dailyTotals.get(key)!
+        existing.totalHours += (timesheet.total_hours || timesheet.hours_worked || 0)
+        existing.shifts.push(timesheet)
       } else {
-        // Timesheet đầu tiên cho ngày này
-        const totalHours = timesheet.total_hours || timesheet.hours_worked || 0
-        const regularHours = Math.min(totalHours, 10)
-        const overtimeHours = Math.max(0, totalHours - 10)
-        
-        groupedTimesheets.set(key, {
-          ...timesheet,
-          total_hours: Math.round(totalHours * 100) / 100,
-          hours_worked: Math.round(totalHours * 100) / 100,
-          regular_hours: Math.round(regularHours * 100) / 100,
-          overtime_hours: Math.round(overtimeHours * 100) / 100,
-          shifts_count: 1,
+        dailyTotals.set(key, {
+          totalHours: timesheet.total_hours || timesheet.hours_worked || 0,
+          shifts: [timesheet]
         })
       }
     })
 
-    // Chuyển Map thành array
-    const processedTimesheets = Array.from(groupedTimesheets.values())
+    // Bước 2: Tính lại overtime và salary cho từng ca dựa trên tổng giờ trong ngày
+    const processedTimesheets: any[] = []
+    
+    dailyTotals.forEach((dailyData, key) => {
+      const { totalHours, shifts } = dailyData
+      
+      // Tính regular và overtime cho ngày
+      const dailyRegularHours = Math.min(totalHours, 10)
+      const dailyOvertimeHours = Math.max(0, totalHours - 10)
+      
+      // Phân bổ overtime theo tỷ lệ giờ của từng ca
+      shifts.forEach((timesheet: any, index: number) => {
+        const shiftHours = timesheet.total_hours || timesheet.hours_worked || 0
+        const shiftRatio = totalHours > 0 ? shiftHours / totalHours : 0
+        
+        // Phân bổ regular và overtime cho ca này
+        const shiftRegularHours = Math.min(shiftHours, dailyRegularHours * shiftRatio)
+        const shiftOvertimeHours = dailyOvertimeHours * shiftRatio
+        
+        processedTimesheets.push({
+          ...timesheet,
+          total_hours: Math.round(shiftHours * 100) / 100,
+          hours_worked: Math.round(shiftHours * 100) / 100,
+          regular_hours: Math.round(shiftRegularHours * 100) / 100,
+          overtime_hours: Math.round(shiftOvertimeHours * 100) / 100,
+          // Thông tin bổ sung về ngày
+          daily_total_hours: Math.round(totalHours * 100) / 100,
+          daily_regular_hours: Math.round(dailyRegularHours * 100) / 100,
+          daily_overtime_hours: Math.round(dailyOvertimeHours * 100) / 100,
+          shift_number: index + 1,
+          total_shifts_in_day: shifts.length,
+        })
+      })
+    })
 
     // Calculate summary
     const totalHours = processedTimesheets.reduce((sum, ts) => sum + (ts.total_hours || ts.hours_worked || 0), 0)
