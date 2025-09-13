@@ -257,7 +257,6 @@ export default function UsersPage() {
                   <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
-                    type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
@@ -272,7 +271,7 @@ export default function UsersPage() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
-                    minLength={6}
+                    minLength={1}
                   />
                 </div>
 
