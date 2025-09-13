@@ -97,17 +97,8 @@ export async function createUser(userData: any): Promise<any | null> {
 
   try {
     const { createClient } = await import("@/lib/supabase/server")
-    const { hashPassword } = await import("@/lib/password-utils")
     const supabase = await createClient()
     console.log("[v0] DB: Supabase client created successfully")
-
-    // Hash password nếu có
-    if (userData.password) {
-      const hashedPassword = hashPassword(userData.password)
-      userData.password = hashedPassword
-      userData.password_hash = hashedPassword
-      console.log("[v0] DB: Password hashed successfully")
-    }
 
     const { data, error } = await supabase.from("employees").insert([userData]).select().single()
     const duration = Date.now() - startTime
