@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: false, // Set false cho development
       sameSite: "lax",
-      maxAge: 60 * 60 * 24, // 24 hours
+      maxAge: 60 * 60 * 24 * 365 * 10, // ~10 năm
       path: "/",
     })
 
