@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAllEmployees, updateTimesheet } from "@/lib/database"
+import { getAllEmployees, updateTimesheet, getTimesheetById } from "@/lib/database"
 
 // Simple authentication check - you can modify this based on your auth implementation
 function isAuthorized(request: NextRequest) {
@@ -8,6 +8,7 @@ function isAuthorized(request: NextRequest) {
 }
 
 // Helper function to read mock data from the main timesheets API
+// NOTE: vẫn giữ để debug nếu cần, nhưng không còn dùng để tìm bản ghi trong PATCH
 async function readTimesheetsData() {
   try {
     // Since we can't access the file system in Vercel, we'll make an internal API call
@@ -56,12 +57,15 @@ async function readTimesheetsData() {
   }
 }
 
-// Helper parse HH:mm -> minutes
+// Helper parse HH:mm or HH:mm:ss -> minutes
 function parseHm(value?: string | null): number | null {
   if (!value) return null
-  const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(value.trim())
+  const s = value.trim()
+  const m = /^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.exec(s)
   if (!m) return null
-  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10)
+  const h = parseInt(m[1], 10)
+  const min = parseInt(m[2], 10)
+  return h * 60 + min
 }
 
 // Tổng giờ có xử lý qua ngày (checkout < checkin => +24h)
@@ -108,32 +112,20 @@ export async function PATCH(
     if (typeof check_in === "string" && check_in.trim() === "") check_in = undefined
     if (typeof check_out === "string" && check_out.trim() === "") check_out = undefined
 
-    // Lấy bản ghi hiện có từ API chính (đang kết nối DB)
-    const all = await readTimesheetsData()
-    const total = Array.isArray(all) ? all.length : -1
-    console.log("[TS PATCH] readTimesheetsData -> isArray:", Array.isArray(all), "count:", total)
-    if (Array.isArray(all)) {
-      const sampleIds = all.slice(0, 10).map((t: any) => t?.id)
-      console.log("[TS PATCH] first ids:", sampleIds)
-    }
-
-    const existing = Array.isArray(all) ? all.find((t: any) => t.id === timesheetId) : null
-    if (!existing) {
-      console.warn("[TS PATCH] Timesheet not found in list. targetId:", timesheetId)
-      if (Array.isArray(all)) {
-        const hasSameDate = all.filter((t: any) => t?.date).slice(0, 3).map((t: any) => ({ id: t?.id, date: t?.date }))
-        console.log("[TS PATCH] sample rows (id,date):", hasSameDate)
-      }
-      return NextResponse.json({ error: "Timesheet not found" }, { status: 404 })
-    }
-
-    console.log("[TS PATCH] Found existing:", {
+    // ĐỌC TRỰC TIẾP TỪ DB (không fetch nội bộ nữa)
+    console.log("[TS PATCH] fetching existing timesheet from DB by id...")
+    const existing = await getTimesheetById(timesheetId as string)
+    console.log("[TS PATCH] getTimesheetById result:", existing ? {
       id: existing.id,
       employee_id: existing.employee_id,
       date: existing.date,
       check_in_time: existing.check_in_time ?? existing.check_in,
       check_out_time: existing.check_out_time ?? existing.check_out,
-    })
+    } : null)
+
+    if (!existing) {
+      return NextResponse.json({ error: "Timesheet not found" }, { status: 404 })
+    }
 
     // Ghép giá trị mới với cũ
     const newCheckIn = check_in ?? existing.check_in_time ?? existing.check_in ?? null
@@ -172,12 +164,8 @@ export async function PATCH(
     if (canRecalculate) {
       const totalHours = calcTotalHours(newCheckIn as string, newCheckOut as string)
       console.log("[TS PATCH] totalHours:", totalHours)
-      // New: Tính lương với ca làm 10 tiếng
-      const regularHours = Math.min(totalHours, 10)
-      const overtimeHours = Math.max(totalHours - 10, 0)
-      const regularPay = Math.round(regularHours * hourlyRate)
-      const overtimePay = Math.round(overtimeHours * overtimeHourlyRate)
-      const totalPay = regularPay + overtimePay
+      const { regularHours, overtimeHours, regularPay, overtimePay, totalPay } =
+        computeSalary10h(totalHours, hourlyRate, overtimeHourlyRate)
 
       updateData = {
         ...updateData,
@@ -198,6 +186,18 @@ export async function PATCH(
     const updated = await updateTimesheet(timesheetId, updateData)
     console.log("[TS PATCH] updateTimesheet result:", updated)
 
+    if (!updated) {
+      console.error("[TS PATCH] Failed to update timesheet - null result")
+      return NextResponse.json({ error: "Failed to update timesheet" }, { status: 500 })
+    }
+
+    return NextResponse.json(updated)
+  } catch (error) {
+    console.error("Error updating timesheet:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+}
     if (!updated) {
       console.error("[TS PATCH] Failed to update timesheet - null result")
       return NextResponse.json({ error: "Failed to update timesheet" }, { status: 500 })

@@ -311,49 +311,50 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
     const { createClient } = await import("@/lib/supabase/server")
     const supabase = await createClient()
 
-    // Tạo object update với tên cột đúng theo database schema
+    // Chuẩn hóa "HH:mm" -> "HH:mm:00"
+    const ensureTimeWithSeconds = (t: string) => {
+      if (!t) return t
+      return /^\d{2}:\d{2}:\d{2}$/.test(t) ? t : `${t}:00`
+    }
+
     const dbUpdates: any = {}
 
-    // Map các field name cho đúng với database
-    if (updates.check_out_time) {
-      // Cho cột check_out_time (TIME format)
-      dbUpdates.check_out_time = updates.check_out_time
-      // Tạo timestamp cho check_out nếu có date
+    // Chuẩn hóa và set check_in_time + check_in (timestamp)
+    if (updates.check_in_time !== undefined) {
+      const t = ensureTimeWithSeconds(updates.check_in_time)
+      dbUpdates.check_in_time = t
       const currentDate = new Date().toISOString().split("T")[0]
-      dbUpdates.check_out = `${currentDate} ${updates.check_out_time}:00+07:00`
+      dbUpdates.check_in = `${currentDate} ${t}+07:00`
+    }
+
+    // Chuẩn hóa và set check_out_time + check_out (timestamp)
+    if (updates.check_out_time !== undefined) {
+      const t = ensureTimeWithSeconds(updates.check_out_time)
+      dbUpdates.check_out_time = t
+      const currentDate = new Date().toISOString().split("T")[0]
+      dbUpdates.check_out = `${currentDate} ${t}+07:00`
     }
 
     if (updates.total_hours !== undefined) {
       dbUpdates.total_hours = updates.total_hours
-      dbUpdates.hours_worked = updates.total_hours // Map to hours_worked column
+      dbUpdates.hours_worked = updates.total_hours
     }
 
-    if (updates.salary !== undefined) {
-      dbUpdates.salary = updates.salary
-    }
+    if (updates.salary !== undefined) dbUpdates.salary = updates.salary
+    if (updates.regular_hours !== undefined) dbUpdates.regular_hours = updates.regular_hours
+    if (updates.overtime_hours !== undefined) dbUpdates.overtime_hours = updates.overtime_hours
+    if (updates.regular_pay !== undefined) dbUpdates.regular_pay = updates.regular_pay
+    if (updates.overtime_pay !== undefined) dbUpdates.overtime_pay = updates.overtime_pay
 
-    if (updates.regular_hours !== undefined) {
-      dbUpdates.regular_hours = updates.regular_hours
-    }
+    // Thêm cập nhật đơn giá
+    if (updates.hourly_rate !== undefined) dbUpdates.hourly_rate = updates.hourly_rate
+    if (updates.overtime_hourly_rate !== undefined) dbUpdates.overtime_hourly_rate = updates.overtime_hourly_rate
 
-    if (updates.overtime_hours !== undefined) {
-      dbUpdates.overtime_hours = updates.overtime_hours
-    }
-
-    if (updates.regular_pay !== undefined) {
-      dbUpdates.regular_pay = updates.regular_pay
-    }
-
-    if (updates.overtime_pay !== undefined) {
-      dbUpdates.overtime_pay = updates.overtime_pay
-    }
-
-    // Thêm updated_at timestamp
+    // updated_at
     dbUpdates.updated_at = new Date().toISOString()
 
     console.log("[DB] Mapped DB updates:", JSON.stringify(dbUpdates, null, 2))
 
-    // Kiểm tra ID trước khi update
     if (!id || typeof id !== "string") {
       console.error("[DB] Invalid timesheet ID:", id)
       return null
@@ -374,7 +375,6 @@ export async function updateTimesheet(id: string, updates: any): Promise<any | n
 
     console.log("[DB] ===== UPDATE SUCCESS =====")
     console.log("[DB] Updated timesheet:", JSON.stringify(data, null, 2))
-    console.log("[DB] ===========================")
     console.log("[DB] ===== UPDATE TIMESHEET END =====")
     return data
   } catch (error) {
@@ -621,5 +621,43 @@ export async function initializeData() {
     console.log("[v0] DB: Initialization duration:", duration + "ms")
   } catch (err) {
     console.log("[v0] DB: initializeData exception:", err)
+  }
+}
+
+export async function getTimesheetById(id: string): Promise<any | null> {
+  console.log("[DB] getTimesheetById called with id:", id)
+  const startTime = Date.now()
+
+  try {
+    const { createClient } = await import("@/lib/supabase/server")
+    const supabase = await createClient()
+    console.log("[DB] Supabase client created successfully")
+
+    const { data, error } = await supabase
+      .from("timesheets")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle()
+
+    const duration = Date.now() - startTime
+
+    if (error) {
+      console.log("[DB] getTimesheetById error:", error)
+      console.log("[DB] Query duration:", duration + "ms")
+      return null
+    }
+
+    if (!data) {
+      console.log("[DB] getTimesheetById not found, id:", id)
+      console.log("[DB] Query duration:", duration + "ms")
+      return null
+    }
+
+    console.log("[DB] getTimesheetById success:", JSON.stringify(data, null, 2))
+    console.log("[DB] Query duration:", duration + "ms")
+    return data
+  } catch (err) {
+    console.log("[DB] getTimesheetById exception:", err)
+    return null
   }
 }
