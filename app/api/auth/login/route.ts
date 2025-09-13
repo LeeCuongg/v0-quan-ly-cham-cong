@@ -9,56 +9,44 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Login attempt for email:", email)
 
     if (!email || !password) {
-      console.log("[v0] Missing email or password")
       return NextResponse.json({ error: "Email và mật khẩu là bắt buộc" }, { status: 400 })
     }
 
     const user = await findUserByEmail(email)
-    console.log("[v0] User found:", user ? "Yes" : "No")
-
     if (!user) {
-      console.log("[v0] User not found for email:", email)
       return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 })
     }
 
-    // So sánh trực tiếp với cột password (chỉ để test)
+    // demo: so sánh plain
     const isValidPassword = password === user.password
-    console.log("[v0] Password validation result:", isValidPassword)
-
     if (!isValidPassword) {
-      console.log("[v0] Invalid password for user:", email)
       return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 })
     }
 
-    const sessionPayload = {
+    const session = await encrypt({
       userId: user.id,
       email: user.email,
       role: user.role,
       name: user.name,
-    }
+    })
 
-    console.log("[v0] Creating session for user:", sessionPayload)
-    const session = await encrypt(sessionPayload)
-    const cookieStore = await cookies()
+    // Tạo response rồi set cookie lên response
+    const res = NextResponse.json({
+      success: true,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    })
 
-    cookieStore.set("session", session, {
+    res.cookies.set({
+      name: "session",
+      value: session,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24, // 24 hours
+      path: "/",                 // rất quan trọng
+      maxAge: 60 * 60 * 24,      // 24h
     })
 
-    console.log("[v0] Session cookie set successfully")
-
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    })
+    return res
   } catch (error) {
     console.error("[v0] Login error:", error)
     return NextResponse.json({ error: "Lỗi server" }, { status: 500 })
