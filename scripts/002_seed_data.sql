@@ -10,15 +10,15 @@ INSERT INTO public.employees (
   0,
   0,
   false,
-  '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', -- bcrypt hash của 'admin123'
-  '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
+  'a1b2c3d4e5f6:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+  'a1b2c3d4e5f6:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
   'manager',
   true,
   '0900000000'
 )
 ON CONFLICT (email) DO UPDATE SET 
   role = 'manager',
-  password = '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW';
+  password = 'a1b2c3d4e5f6:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
 
 -- Insert sample employees
 INSERT INTO public.employees (
@@ -26,9 +26,9 @@ INSERT INTO public.employees (
   is_currently_working, password_hash, password, role, 
   is_active, phone
 ) VALUES 
-  (gen_random_uuid(), 'Nguyễn Văn An', 'nguyen.van.an@company.com', 150000, 168, true, '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'employee', true, '0901234567')
+  (gen_random_uuid(), 'Nguyễn Văn An', 'nguyen.van.an@company.com', 150000, 168, true, 'b2c3d4e5f6a1:5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'b2c3d4e5f6a1:5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'employee', true, '0901234567')
 ON CONFLICT (email) DO UPDATE SET 
-  password = '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+  password = 'b2c3d4e5f6a1:5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
 
 -- Update existing timesheets to fill employee_name (nếu thiếu)
 UPDATE public.timesheets t

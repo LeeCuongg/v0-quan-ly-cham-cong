@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { findUserByEmail } from "@/lib/database"
 import { encrypt } from "@/lib/auth"
+import { verifyPasswordCompat } from "@/lib/password-utils"
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,9 +21,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 })
     }
 
-    // Sử dụng bcrypt để verify password đã hash
-    const bcrypt = eval('require("bcryptjs")')
-    const isValidPassword = await bcrypt.compare(password, user.password)
+    // Sử dụng password utils để verify password (hỗ trợ cả crypto và bcrypt)
+    const isValidPassword = await verifyPasswordCompat(password, user.password)
     console.log("[v0] Password validation result:", isValidPassword)
 
     if (!isValidPassword) {
