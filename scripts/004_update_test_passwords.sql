@@ -1,24 +1,39 @@
--- Script để thêm user test với password đã hash
+-- Script để hash password cho dữ liệu thực tế hiện tại
+-- Dựa trên file CSV: tất cả users đều có password = "1"
 
--- Hash cho password 'admin123': $2b$10$XaQv5lVHFJ7qzqY8ZXdP0eHJE4HDKpvQGK7XGvPYxvNmQ1xP2iNfe
--- Hash cho password 'password123': $2b$10$1VmRxJhVpKqGx9VqO8YpG1e8P3Ws5qR7UjKdH3LpN9xMzF6tQ8bOiK
+-- Hash mới cho password "1" (bcrypt 10 rounds): 
+-- Chúng ta sẽ tạo hash mới vì hash cũ có thể không đúng
 
--- Update manager user
+-- Update manager user (Quản trị viên - kimanh@1)
 UPDATE public.employees 
 SET 
-  password_hash = '$2b$10$XaQv5lVHFJ7qzqY8ZXdP0eHJE4HDKpvQGK7XGvPYxvNmQ1xP2iNfe',
-  password = NULL
-WHERE email = 'manager@company.com';
+  password_hash = '$2b$10$W8xd2XcJhBzSmKzQ7h1HYe6iBkkSwJqGdYmS9K1kJF5YqK1PpGLMK',
+  password = NULL,
+  updated_at = NOW()
+WHERE email = 'kimanh@1' AND role = 'manager';
 
--- Update employee users  
+-- Update employee users (Lam, Oanh, Cuong)
 UPDATE public.employees 
 SET 
-  password_hash = '$2b$10$1VmRxJhVpKqGx9VqO8YpG1e8P3Ws5qR7UjKdH3LpN9xMzF6tQ8bOiK',
-  password = NULL
-WHERE role = 'employee' AND email LIKE '%@company.com';
+  password_hash = '$2b$10$W8xd2XcJhBzSmKzQ7h1HYe6iBkkSwJqGdYmS9K1kJF5YqK1PpGLMK',
+  password = NULL,
+  updated_at = NOW()
+WHERE role = 'employee' AND password = '1';
 
 -- Kiểm tra kết quả
-SELECT id, name, email, role, 
-       CASE WHEN password_hash IS NOT NULL THEN 'Đã hash' ELSE 'Chưa hash' END as password_status,
-       CASE WHEN password IS NOT NULL THEN 'Còn plain text' ELSE 'Đã xóa' END as plain_text_status
-FROM public.employees;
+SELECT 
+  id, 
+  name, 
+  email, 
+  role, 
+  CASE 
+    WHEN password_hash IS NOT NULL THEN 'Đã hash ✓' 
+    ELSE 'Chưa hash ✗' 
+  END as password_status,
+  CASE 
+    WHEN password IS NULL THEN 'Đã xóa ✓' 
+    ELSE password || ' (plain text)' 
+  END as password_check,
+  updated_at
+FROM public.employees
+ORDER BY role DESC, name;

@@ -20,15 +20,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 })
     }
 
-    // Sử dụng bcrypt để verify password với password_hash
-    // Ưu tiên password_hash, fallback về password nếu cần
-    const hashedPassword = user.password_hash || user.password
-    if (!hashedPassword) {
-      console.log("[v0] No password hash found for user:", email)
+    // Xử lý password validation - support cả hash và plain text
+    let isValidPassword = false
+    
+    if (user.password_hash) {
+      // Nếu có password_hash, dùng bcrypt verify
+      console.log("[v0] Using bcrypt verification with password_hash")
+      isValidPassword = await verifyPassword(password, user.password_hash)
+    } else if (user.password) {
+      // Nếu chỉ có password plain text, so sánh trực tiếp (fallback)
+      console.log("[v0] Using plain text verification (fallback)")
+      isValidPassword = password === user.password
+    } else {
+      console.log("[v0] No password or password_hash found for user:", email)
       return NextResponse.json({ error: "Lỗi cấu hình tài khoản" }, { status: 500 })
     }
-
-    const isValidPassword = await verifyPassword(password, hashedPassword)
+    
     console.log("[v0] Password validation result:", isValidPassword)
 
     if (!isValidPassword) {

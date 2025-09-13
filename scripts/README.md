@@ -52,15 +52,24 @@ const isValidPassword = await verifyPassword(password, hashedPassword)
 ```
 
 ## Test Users
-Sau khi chạy migration, có thể test với:
+Dựa trên dữ liệu thực tế từ database, sau khi chạy migration:
 
 **Manager:**
-- Email: `manager@company.com`
-- Password: `admin123`
+- Email: `kimanh@1`
+- Password: `1`
 
-**Employee:**
-- Email: `nguyen.van.an@company.com` 
-- Password: `password123`
+**Employees:**
+- Email: `Lam` / Password: `1`
+- Email: `Oanh` / Password: `1`  
+- Email: `cuong@gmail` / Password: `1`
+
+## Scripts mới (cập nhật cho dữ liệu thực tế)
+
+### 5. `005_hash_current_passwords.sql`
+Script tổng quát để hash tất cả password = "1" hiện tại.
+
+### 6. `006_test_login_data.sql`
+Script để kiểm tra trạng thái và test data sau migration.
 
 ## Lưu ý bảo mật
 - Luôn hash password trước khi lưu vào database
