@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,8 +31,12 @@ interface Timesheet {
   total_hours: number
   hours_worked: number
   overtime_hours: number
+  regular_hours: number
+  regular_pay: number
+  overtime_pay: number
   salary: number
   overtime_salary: number
+  shifts_count?: number // Số ca làm việc trong ngày
   created_at: string
   updated_at: string
 }
@@ -157,7 +161,7 @@ export default function TimesheetsPage() {
     const totalHours = timesheetData.reduce((sum, ts) => sum + (ts.total_hours || ts.hours_worked || 0), 0)
     const totalSalary = timesheetData.reduce((sum, ts) => sum + (ts.salary || 0), 0)
     const totalOvertimeHours = timesheetData.reduce((sum, ts) => sum + (ts.overtime_hours || 0), 0)
-    const totalOvertimeSalary = timesheetData.reduce((sum, ts) => sum + (ts.overtime_salary || 0), 0)
+    const totalOvertimeSalary = timesheetData.reduce((sum, ts) => sum + (ts.overtime_pay || ts.overtime_salary || 0), 0)
     const completedShifts = timesheetData.filter(ts => ts.check_out_time || ts.check_out).length
     const uniqueEmployees = new Set(timesheetData.map(ts => ts.employee_id)).size
 

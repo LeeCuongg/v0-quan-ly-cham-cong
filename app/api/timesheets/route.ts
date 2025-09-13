@@ -56,23 +56,93 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Transform data với overtime info
-    const transformedData = data?.map((timesheet) => ({
-      id: timesheet.id,
-      employee_id: timesheet.employee_id,
-      employee_name: timesheet.employee_name || timesheet.employees?.name,
-      date: timesheet.date,
-      check_in_time: timesheet.check_in_time,
-      check_out_time: timesheet.check_out_time,
-      total_hours: timesheet.total_hours || 0,
-      regular_hours: timesheet.regular_hours || 0,
-      overtime_hours: timesheet.overtime_hours || 0,
-      regular_pay: timesheet.regular_pay || 0,
-      overtime_pay: timesheet.overtime_pay || 0,
-      salary: timesheet.salary || 0,
-      hourly_rate: timesheet.employees?.hourly_rate || 0,
-      overtime_hourly_rate: timesheet.employees?.overtime_hourly_rate || 30000,
-    })) || []
+    // Group by employee_id and date để gộp nhiều ca làm việc trong cùng 1 ngày
+    const groupedTimesheets = new Map<string, any>()
+    
+    data?.forEach((timesheet: any) => {
+      const key = `${timesheet.employee_id}-${timesheet.date}`
+      
+      if (groupedTimesheets.has(key)) {
+        // Gộp với timesheet đã có
+        const existing = groupedTimesheets.get(key)
+        
+        // Cộng tổng giờ làm việc
+        const newTotalHours = (existing.total_hours || 0) + (timesheet.total_hours || 0)
+        
+        // Tính lại regular và overtime hours
+        const regularHours = Math.min(newTotalHours, 10) // Tối đa 10 giờ regular
+        const overtimeHours = Math.max(0, newTotalHours - 10) // Giờ vượt quá 10 giờ
+        
+        // Tính lại lương
+        const hourlyRate = timesheet.employees?.hourly_rate || 0
+        const overtimeRate = timesheet.employees?.overtime_hourly_rate || 30000
+        const regularPay = regularHours * hourlyRate
+        const overtimePay = overtimeHours * overtimeRate
+        const totalSalary = regularPay + overtimePay
+        
+        // Cập nhật thời gian check-in sớm nhất và check-out muộn nhất
+        const earliestCheckIn = [existing.check_in_time, timesheet.check_in_time]
+          .filter(Boolean)
+          .sort()[0] || null
+        const latestCheckOut = [existing.check_out_time, timesheet.check_out_time]
+          .filter(Boolean)
+          .sort()
+          .reverse()[0] || null
+        
+        groupedTimesheets.set(key, {
+          id: existing.id, // Giữ ID của timesheet đầu tiên
+          employee_id: timesheet.employee_id,
+          employee_name: timesheet.employee_name || timesheet.employees?.name,
+          date: timesheet.date,
+          check_in_time: earliestCheckIn,
+          check_out_time: latestCheckOut,
+          total_hours: Math.round(newTotalHours * 100) / 100,
+          regular_hours: Math.round(regularHours * 100) / 100,
+          overtime_hours: Math.round(overtimeHours * 100) / 100,
+          regular_pay: Math.round(regularPay),
+          overtime_pay: Math.round(overtimePay),
+          salary: Math.round(totalSalary),
+          hourly_rate: hourlyRate,
+          overtime_hourly_rate: overtimeRate,
+          shifts_count: existing.shifts_count + 1, // Đếm số ca
+        })
+      } else {
+        // Timesheet đầu tiên cho employee-date này
+        const totalHours = timesheet.total_hours || 0
+        const regularHours = Math.min(totalHours, 10)
+        const overtimeHours = Math.max(0, totalHours - 10)
+        
+        const hourlyRate = timesheet.employees?.hourly_rate || 0
+        const overtimeRate = timesheet.employees?.overtime_hourly_rate || 30000
+        const regularPay = regularHours * hourlyRate
+        const overtimePay = overtimeHours * overtimeRate
+        const totalSalary = regularPay + overtimePay
+        
+        groupedTimesheets.set(key, {
+          id: timesheet.id,
+          employee_id: timesheet.employee_id,
+          employee_name: timesheet.employee_name || timesheet.employees?.name,
+          date: timesheet.date,
+          check_in_time: timesheet.check_in_time,
+          check_out_time: timesheet.check_out_time,
+          total_hours: Math.round(totalHours * 100) / 100,
+          regular_hours: Math.round(regularHours * 100) / 100,
+          overtime_hours: Math.round(overtimeHours * 100) / 100,
+          regular_pay: Math.round(regularPay),
+          overtime_pay: Math.round(overtimePay),
+          salary: Math.round(totalSalary),
+          hourly_rate: hourlyRate,
+          overtime_hourly_rate: overtimeRate,
+          shifts_count: 1,
+        })
+      }
+    })
+
+    // Chuyển Map thành array và sắp xếp theo ngày
+    const transformedData = Array.from(groupedTimesheets.values())
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    console.log("[Timesheets API] Grouped data sample:", transformedData.slice(0, 2))
 
     return NextResponse.json(transformedData)
 
