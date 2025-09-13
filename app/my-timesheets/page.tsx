@@ -252,7 +252,7 @@ export default function MyTimesheetsPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Giờ overtime</CardTitle>
+                <CardTitle className="text-sm font-medium">Giờ tăng ca</CardTitle>
                 <Clock className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
@@ -265,7 +265,7 @@ export default function MyTimesheetsPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Lương overtime</CardTitle>
+                <CardTitle className="text-sm font-medium">Lương tăng ca</CardTitle>
                 <DollarSign className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
@@ -383,9 +383,9 @@ export default function MyTimesheetsPage() {
                         <th className="text-left p-3 font-medium">Check In</th>
                         <th className="text-left p-3 font-medium">Check Out</th>
                         <th className="text-left p-3 font-medium">Tổng giờ</th>
-                        <th className="text-left p-3 font-medium">Giờ overtime</th>
+                        <th className="text-left p-3 font-medium">Giờ tăng ca</th>
                         <th className="text-left p-3 font-medium">Lương cơ bản</th>
-                        <th className="text-left p-3 font-medium">Lương overtime</th>
+                        <th className="text-left p-3 font-medium">Lương tăng ca</th>
                         <th className="text-left p-3 font-medium">Tổng lương</th>
                         <th className="text-left p-3 font-medium">Trạng thái</th>
                       </tr>

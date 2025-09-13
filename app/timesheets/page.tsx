@@ -432,7 +432,7 @@ export default function TimesheetsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Giờ overtime</CardTitle>
+              <CardTitle className="text-sm font-medium">Giờ tăng ca</CardTitle>
               <Clock className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
@@ -454,12 +454,12 @@ export default function TimesheetsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Lương overtime</CardTitle>
+              <CardTitle className="text-sm font-medium">Lương tăng ca</CardTitle>
               <DollarSign className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">{stats.totalOvertimeSalary.toLocaleString("vi-VN")}đ</div>
-              <p className="text-xs text-muted-foreground">Chi phí overtime</p>
+              <p className="text-xs text-muted-foreground">Chi phí tăng ca</p>
             </CardContent>
           </Card>
 
@@ -668,7 +668,7 @@ export default function TimesheetsPage() {
                   <span className="font-bold text-green-600">{stats.totalSalary.toLocaleString("vi-VN")}đ</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm">Tổng chi phí overtime:</span>
+                  <span className="text-sm">Tổng chi phí tăng ca:</span>
                   <span className="font-bold text-orange-600">{stats.totalOvertimeSalary.toLocaleString("vi-VN")}đ</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
