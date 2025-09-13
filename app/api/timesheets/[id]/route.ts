@@ -8,17 +8,25 @@ function isAuthorized(request: NextRequest) {
 }
 
 // Helper function to read mock data from the main timesheets API
-async function readTimesheetsData() {
+async function readTimesheetsData(request: NextRequest) {
   try {
     // Since we can't access the file system in Vercel, we'll make an internal API call
     const baseUrl = process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}`
       : 'http://localhost:3000'
-    
-    const response = await fetch(`${baseUrl}/api/timesheets`, {
+
+    // Force a very wide date range to ensure the timesheet id is included
+    const url = new URL(`${baseUrl}/api/timesheets`)
+    url.searchParams.set("startDate", "1970-01-01")
+    url.searchParams.set("endDate", "2100-01-01")
+
+    const response = await fetch(url.toString(), {
       headers: {
         'Content-Type': 'application/json',
-      }
+        // Forward cookie/session so the internal API authorizes the call
+        cookie: request.headers.get('cookie') ?? ''
+      },
+      cache: 'no-store',
     })
     
     if (response.ok) {
@@ -81,7 +89,7 @@ export async function PATCH(
     if (typeof check_out === "string" && check_out.trim() === "") check_out = undefined
 
     // Lấy bản ghi hiện có từ API chính (đang kết nối DB)
-    const all = await readTimesheetsData()
+    const all = await readTimesheetsData(request)
     const existing = Array.isArray(all) ? all.find((t: any) => t.id === timesheetId) : null
     if (!existing) {
       return NextResponse.json({ error: "Timesheet not found" }, { status: 404 })
