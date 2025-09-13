@@ -588,17 +588,17 @@ export default function TimesheetsPage() {
                         </td>
                         <td className="p-3">
                           <div className="font-semibold text-green-600">
-                            {(timesheet.salary || 0).toLocaleString("vi-VN")}đ
+                            {(timesheet.regular_pay || 0).toLocaleString("vi-VN")}đ
                           </div>
                         </td>
                         <td className="p-3">
                           <div className="font-semibold text-orange-600">
-                            {(timesheet.overtime_salary || 0).toLocaleString("vi-VN")}đ
+                            {(timesheet.overtime_pay || 0).toLocaleString("vi-VN")}đ
                           </div>
                         </td>
                         <td className="p-3">
                           <div className="font-semibold text-primary">
-                            {((timesheet.salary || 0) + (timesheet.overtime_salary || 0)).toLocaleString("vi-VN")}đ
+                            {((timesheet.regular_pay || 0) + (timesheet.overtime_pay || 0)).toLocaleString("vi-VN")}đ
                           </div>
                         </td>
                         <td className="p-3">
