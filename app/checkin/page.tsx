@@ -268,7 +268,7 @@ export default function CheckinPage() {
                   disabled={loading || !canCheckIn}
                 >
                   <LogIn className="w-6 h-6 mr-2" />
-                  {checkinStatus.totalSessions > 0 ? "CHECK IN LẠI" : "CHECK IN"}
+                  {checkinStatus.totalSessions > 0 ? "CHẤM CÔNG ĐẾN TIẾP" : "CHẤM CÔNG ĐẾN"}
                 </Button>
 
                 <Button
@@ -279,7 +279,7 @@ export default function CheckinPage() {
                   disabled={loading || !canCheckOut}
                 >
                   <LogOut className="w-6 h-6 mr-2" />
-                  CHECK OUT
+                  CHẤM CÔNG VỀ
                 </Button>
               </div>
 

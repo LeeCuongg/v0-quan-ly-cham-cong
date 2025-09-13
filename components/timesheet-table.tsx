@@ -76,7 +76,7 @@ export function TimesheetTable() {
                 <TableHead>Giờ thường</TableHead>
                 <TableHead className="text-orange-600">Giờ ngoài giờ</TableHead>
                 <TableHead>Lương thường</TableHead>
-                <TableHead className="text-orange-600">Lương overtime</TableHead>
+                <TableHead className="text-orange-600">Lương tăng ca</TableHead>
                 <TableHead className="text-orange-600">Lương OT/giờ</TableHead>
                 <TableHead className="font-semibold">Tổng lương</TableHead>
                 <TableHead>Trạng thái</TableHead>
@@ -134,13 +134,13 @@ export function TimesheetTable() {
               </div>
             </div>
             <div className="p-4 bg-card rounded-lg border">
-              <div className="text-sm text-muted-foreground">Tổng giờ overtime</div>
+              <div className="text-sm text-muted-foreground">Tổng giờ tăng ca</div>
               <div className="text-2xl font-bold text-orange-600">
                 {timesheets.reduce((sum, t) => sum + (t.overtime_hours || 0), 0).toFixed(1)}h
               </div>
             </div>
             <div className="p-4 bg-card rounded-lg border">
-              <div className="text-sm text-muted-foreground">Lương overtime</div>
+              <div className="text-sm text-muted-foreground">Lương tăng ca</div>
               <div className="text-2xl font-bold text-orange-600">
                 {timesheets.reduce((sum, t) => sum + (t.overtime_pay || 0), 0).toLocaleString("vi-VN")}đ
               </div>
