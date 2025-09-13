@@ -4,10 +4,19 @@ import {
   getAllEmployees,
   updateTimesheet,
   updateUser,
-  calculateSalaryWithOvertime,
   getActiveTimesheet,
   getTodayTimesheets,
 } from "@/lib/database"
+
+// New: Tính lương với ca làm 10 tiếng
+function computeSalary10h(totalHours: number, hourlyRate: number, overtimeHourlyRate: number) {
+  const regularHours = Math.min(totalHours, 10)
+  const overtimeHours = Math.max(totalHours - 10, 0)
+  const regularPay = Math.round(regularHours * hourlyRate)
+  const overtimePay = Math.round(overtimeHours * overtimeHourlyRate)
+  const totalPay = regularPay + overtimePay
+  return { regularHours, overtimeHours, regularPay, overtimePay, totalPay }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -103,8 +112,8 @@ export async function POST(request: NextRequest) {
     // Tính toán tổng thời gian làm việc
     const totalHours = calculateTotalHours(checkInTimeStr, checkOutTime)
 
-    // Tính lương với overtime
-    const salaryCalculation = calculateSalaryWithOvertime(
+    // Tính lương với overtime (ca 10 tiếng)
+    const salaryCalculation = computeSalary10h(
       totalHours,
       employee.hourly_rate,
       employee.overtime_hourly_rate || 30000,
@@ -112,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     console.log("[API] Salary calculation with overtime:", salaryCalculation)
 
-    // Chuẩn bị dữ liệu update với overtime
+    // Chuẩn bị dữ liệu update
     const updateData = {
       check_out_time: checkOutTime,
       total_hours: Math.round(totalHours * 100) / 100,

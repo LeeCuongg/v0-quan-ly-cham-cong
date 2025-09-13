@@ -42,7 +42,7 @@ const managerNavigation = [
     icon: Users,
   },
   {
-    name: "Chấm công",
+    name: "Quản lý chấm công",
     href: "/timesheets",
     icon: Clock,
   },
