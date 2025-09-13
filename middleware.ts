@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
   // Check role-based access
   if (!requiredRoles.includes(session.role)) {
     // Redirect to appropriate dashboard based on role
-    const dashboardUrl = new URL(session.role === "manager" ? "/" : "/checkin", request.url)
+    const dashboardUrl = new URL(session.role === "manager" ? "/timesheets" : "/checkin", request.url)
     return NextResponse.redirect(dashboardUrl)
   }
 

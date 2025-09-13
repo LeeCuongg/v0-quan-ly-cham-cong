@@ -22,7 +22,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      router.push(user.role === "manager" ? "/" : "/checkin")
+      router.push(user.role === "manager" ? "/timesheets" : "/checkin")
     }
   }, [user, router])
 
@@ -46,7 +46,7 @@ export default function LoginPage() {
       if (response.ok) {
         // Delay nhỏ để đảm bảo cookie được set
         setTimeout(() => {
-          window.location.href = data.user.role === "manager" ? "/" : "/checkin"
+          window.location.href = data.user.role === "manager" ? "/timesheets" : "/checkin"
         }, 100)
       } else {
         setError(data.error || "Đăng nhập thất bại")

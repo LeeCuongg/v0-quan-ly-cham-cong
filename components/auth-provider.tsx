@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (response.ok) {
       const data = await response.json()
       setUser(data.user)
-      router.push("/")
+      router.push(data.user.role === "manager" ? "/timesheets" : "/checkin")
     } else {
       const error = await response.json()
       throw new Error(error.error || "Đăng nhập thất bại")
