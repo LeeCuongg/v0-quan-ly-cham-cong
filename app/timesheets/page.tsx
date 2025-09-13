@@ -407,18 +407,7 @@ export default function TimesheetsPage() {
           </CardContent>
         </Card>
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-8 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tổng bản ghi</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalEntries}</div>
-              <p className="text-xs text-muted-foreground">Lần chấm công</p>
-            </CardContent>
-          </Card>
-
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Nhân viên</CardTitle>
@@ -529,15 +518,15 @@ export default function TimesheetsPage() {
                     <tr className="border-b">
                       <th className="text-left p-3 font-medium">Nhân viên</th>
                       <th className="text-left p-3 font-medium">Ngày</th>
-                      <th className="text-left p-3 font-medium">Check In</th>
-                      <th className="text-left p-3 font-medium">Check Out</th>
+                      <th className="text-left p-3 font-medium">Giờ đến</th>
+                      <th className="text-left p-3 font-medium">Giờ về</th>
                       <th className="text-left p-3 font-medium">Tổng giờ</th>
-                      <th className="text-left p-3 font-medium">Giờ overtime</th>
-                      <th className="text-left p-3 font-medium">Lương cơ bản</th>
-                      <th className="text-left p-3 font-medium">Lương overtime</th>
+                      <th className="text-left p-3 font-medium">Giờ TC</th>
+                      <th className="text-left p-3 font-medium">Lương CB</th>
+                      <th className="text-left p-3 font-medium">Lương TC</th>
                       <th className="text-left p-3 font-medium">Tổng lương</th>
                       <th className="text-left p-3 font-medium">Trạng thái</th>
-                      <th className="text-left p-3 font-medium">Thao tác</th>
+                      <th className="text-left p-3 font-medium">Sửa</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -552,7 +541,6 @@ export default function TimesheetsPage() {
                       <tr key={timesheet.id || index} className="border-b hover:bg-muted/50 transition-colors">
                         <td className="p-3">
                           <div className="font-medium">{timesheet.employee_name}</div>
-                          <div className="text-xs text-muted-foreground">ID: {timesheet.employee_id}</div>
                         </td>
                         <td className="p-3">
                           <div className="font-medium">{formatDate(timesheet.date)}</div>
