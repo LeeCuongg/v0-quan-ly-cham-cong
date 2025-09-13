@@ -237,6 +237,18 @@ export default function MyTimesheetsPage() {
                 </p>
               </CardContent>
             </Card>
+                        <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Tổng lương</CardTitle>
+                <DollarSign className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">{(summary.totalSalary + summary.totalOvertimeSalary).toLocaleString("vi-VN")}đ</div>
+                <p className="text-xs text-muted-foreground">
+                  Cơ bản + Overtime
+                </p>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -253,16 +265,6 @@ export default function MyTimesheetsPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Lương cơ bản</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summary.totalSalary.toLocaleString("vi-VN")}đ</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Lương overtime</CardTitle>
                 <DollarSign className="h-4 w-4 text-orange-500" />
               </CardHeader>
@@ -270,20 +272,15 @@ export default function MyTimesheetsPage() {
                 <div className="text-2xl font-bold text-orange-600">{summary.totalOvertimeSalary.toLocaleString("vi-VN")}đ</div>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng lương</CardTitle>
-                <DollarSign className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-medium">Lương cơ bản</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-primary">{(summary.totalSalary + summary.totalOvertimeSalary).toLocaleString("vi-VN")}đ</div>
-                <p className="text-xs text-muted-foreground">
-                  Cơ bản + Overtime
-                </p>
+                <div className="text-2xl font-bold">{summary.totalSalary.toLocaleString("vi-VN")}đ</div>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Số ngày làm</CardTitle>
