@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { findUserByEmail } from "@/lib/database"
-import { encrypt } from "@/lib/auth"
+import { encrypt, verifyPassword } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,8 +20,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 })
     }
 
-    // So sánh trực tiếp với cột password (chỉ để test)
-    const isValidPassword = password === user.password
+    // Sử dụng bcrypt để verify password với password_hash
+    // Ưu tiên password_hash, fallback về password nếu cần
+    const hashedPassword = user.password_hash || user.password
+    if (!hashedPassword) {
+      console.log("[v0] No password hash found for user:", email)
+      return NextResponse.json({ error: "Lỗi cấu hình tài khoản" }, { status: 500 })
+    }
+
+    const isValidPassword = await verifyPassword(password, hashedPassword)
     console.log("[v0] Password validation result:", isValidPassword)
 
     if (!isValidPassword) {
