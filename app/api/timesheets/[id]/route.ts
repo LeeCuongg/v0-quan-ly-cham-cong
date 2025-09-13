@@ -1,38 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAllEmployees, updateTimesheet } from "@/lib/database"
+import { getAllEmployees, updateTimesheet, getTimesheetById } from "@/lib/database"
 
 // Simple authentication check - you can modify this based on your auth implementation
 function isAuthorized(request: NextRequest) {
   // For now, we'll allow all requests - you should implement proper auth
   return true
-}
-
-// Helper function to read mock data from the main timesheets API
-async function readTimesheetsData() {
-  try {
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000'
-    console.log("[TS PATCH] readTimesheetsData baseUrl:", baseUrl)
-
-    const url = `${baseUrl}/api/timesheets`
-    console.log("[TS PATCH] Fetching internal list:", url)
-    const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' }
-    })
-    console.log("[TS PATCH] Internal list status:", response.status, response.statusText)
-
-    if (response.ok) {
-      const data = await response.json()
-      console.log("[TS PATCH] Internal list length:", Array.isArray(data) ? data.length : "N/A")
-      return data
-    }
-    console.warn("[TS PATCH] Internal list not ok:", response.status)
-    return []
-  } catch (error) {
-    console.error('[TS PATCH] Error reading timesheets data:', error)
-    return []
-  }
 }
 
 // Helper parse HH:mm -> minutes
@@ -92,20 +64,17 @@ export async function PATCH(
     if (typeof check_out === "string" && check_out.trim() === "") check_out = undefined
     console.log("[TS PATCH] Sanitized input:", { check_in, check_out })
 
-    // Thử đọc bản ghi hiện có qua API nội bộ (có thể bị filter theo ngày)
+    // Đọc bản ghi hiện có từ database thật
     let existing: any = null
     try {
-      const all = await readTimesheetsData()
-      if (Array.isArray(all)) {
-        existing = all.find((t: any) => t.id === timesheetId) || null
-      }
+      existing = await getTimesheetById(timesheetId)
       console.log(
         "[TS PATCH] Existing found?",
         !!existing,
         existing ? { id: existing.id, employee_id: existing.employee_id } : null
       )
     } catch (ex) {
-      console.warn("[TS PATCH] readTimesheetsData failed, will proceed without existing. Error:", ex)
+      console.warn("[TS PATCH] getTimesheetById failed, will proceed without existing. Error:", ex)
     }
 
     // Ghép giá trị mới với cũ (nếu có existing)
