@@ -21,19 +21,7 @@ SET
 WHERE role = 'employee' AND password = '1';
 
 -- Kiểm tra kết quả
-SELECT 
-  id, 
-  name, 
-  email, 
-  role, 
-  CASE 
-    WHEN password_hash IS NOT NULL THEN 'Đã hash ✓' 
-    ELSE 'Chưa hash ✗' 
-  END as password_status,
-  CASE 
-    WHEN password IS NULL THEN 'Đã xóa ✓' 
-    ELSE password || ' (plain text)' 
-  END as password_check,
-  updated_at
-FROM public.employees
-ORDER BY role DESC, name;
+SELECT id, name, email, role, 
+       CASE WHEN password_hash IS NOT NULL THEN 'Đã hash' ELSE 'Chưa hash' END as password_status,
+       CASE WHEN password IS NOT NULL THEN 'Còn plain text' ELSE 'Đã xóa' END as plain_text_status
+FROM public.employees;

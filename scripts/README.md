@@ -10,16 +10,16 @@ Script Node.js để hash tất cả password plain text trong database.
 
 **Yêu cầu:**
 - Cấu hình environment variables:
-  ```bash
+  \`\`\`bash
   NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-  ```
+  \`\`\`
 
 **Chạy:**
-```bash
+\`\`\`bash
 cd scripts
 node 003_hash_passwords.js
-```
+\`\`\`
 
 ### 2. `003_hash_passwords.sql`
 Script SQL với một số hash mẫu (chỉ dùng để test).
@@ -32,24 +32,24 @@ Script để update password cho test users với hash đã tính sẵn:
 ### 4. `hash-password.js`
 Utility để hash password từ command line:
 
-```bash
+\`\`\`bash
 node scripts/hash-password.js "your-password"
-```
+\`\`\`
 
 ## Thay đổi trong code
 
 ### Trước (Login Route):
-```javascript
+\`\`\`javascript
 // So sánh trực tiếp với cột password (chỉ để test)
 const isValidPassword = password === user.password
-```
+\`\`\`
 
 ### Sau (Login Route):
-```javascript
+\`\`\`javascript
 // Sử dụng bcrypt để verify password với password_hash
 const hashedPassword = user.password_hash || user.password
 const isValidPassword = await verifyPassword(password, hashedPassword)
-```
+\`\`\`
 
 ## Test Users
 Dựa trên dữ liệu thực tế từ database, sau khi chạy migration:
