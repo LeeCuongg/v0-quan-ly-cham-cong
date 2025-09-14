@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         password_hash: hashedPassword,
         is_active: true,
         total_hours_this_month: 0,
-        is_currently_working: false
+        is_currently_working: true
       })
       .select()
       .single()
