@@ -87,6 +87,26 @@ export function EmployeeTable() {
     setEditingEmployee(null)
   }
 
+  const handleDelete = async (employeeId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa nhân viên này?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/employees/${employeeId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        await fetchEmployees()
+        setShowForm(false)
+        setEditingEmployee(null)
+      }
+    } catch (error) {
+      console.error('Error deleting employee:', error)
+    }
+  }
+
   const getRoleBadge = (role: string) => {
     if (role === 'manager') {
       return <Badge variant="default">Quản lý</Badge>
@@ -125,6 +145,7 @@ export function EmployeeTable() {
                 employee={editingEmployee}
                 onSubmit={handleSubmit}
                 onCancel={handleCancel}
+                onDelete={handleDelete}
               />
             </DialogContent>
           </Dialog>

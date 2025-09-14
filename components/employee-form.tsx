@@ -11,9 +11,10 @@ interface EmployeeFormProps {
   employee?: any
   onSubmit: (data: any) => void
   onCancel: () => void
+  onDelete?: (id: string) => void
 }
 
-export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps) {
+export function EmployeeForm({ employee, onSubmit, onCancel, onDelete }: EmployeeFormProps) {
   const [formData, setFormData] = useState({
     name: employee?.name || "",
     email: employee?.email || "",
@@ -26,6 +27,13 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // For new employees, password is required
+    if (!employee && (!formData.password || formData.password.trim() === "")) {
+      alert("Mật khẩu là bắt buộc khi tạo nhân viên mới")
+      return
+    }
+    
     onSubmit(formData)
   }
 
@@ -76,7 +84,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
 
           <div className="space-y-2">
             <Label htmlFor="password">
-              {employee ? "Mật khẩu mới (để trống nếu không thay đổi)" : "Mật khẩu"}
+              {employee ? "Mật khẩu mới (để trống nếu không đổi)" : "Mật khẩu"}
             </Label>
             <Input
               id="password"
@@ -84,6 +92,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
               value={formData.password}
               onChange={(e) => handleChange("password", e.target.value)}
               required={!employee}
+              placeholder={employee ? "Nhập mật khẩu mới để thay đổi" : "Nhập mật khẩu"}
             />
           </div>
 
@@ -133,6 +142,15 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
             <Button type="submit" className="flex-1">
               {employee ? "Cập nhật" : "Thêm mới"}
             </Button>
+            {employee && onDelete && (
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={() => onDelete(employee.id)}
+              >
+                Xóa
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={onCancel}>
               Hủy
             </Button>

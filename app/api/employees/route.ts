@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAllEmployees } from "@/lib/database"
-import { getSession, isManager } from "@/lib/auth"
+import { getSession, isManager, hashPassword } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 
 export async function GET() {
@@ -22,15 +22,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, email, hourly_rate, overtime_hourly_rate, role, phone } = body
+    const { name, email, hourly_rate, overtime_hourly_rate, role, phone, password } = body
 
-    if (!name || !email || !hourly_rate) {
+    if (!name || !email || !hourly_rate || !password) {
       return NextResponse.json({ 
-        error: "Name, email và hourly_rate là bắt buộc" 
+        error: "Name, email, hourly_rate và password là bắt buộc" 
       }, { status: 400 })
     }
 
     const supabase = await createClient()
+
+    // Hash the password
+    const hashedPassword = await hashPassword(password)
 
     const { data, error } = await supabase
       .from("employees")
@@ -41,8 +44,7 @@ export async function POST(request: NextRequest) {
         overtime_hourly_rate: parseFloat(overtime_hourly_rate) || 30000,
         role: role || 'employee',
         phone: phone || null,
-        password: email, // Default password
-        password_hash: 'temp_hash', // Should be properly hashed
+        password_hash: hashedPassword,
         is_active: true,
         total_hours_this_month: 0,
         is_currently_working: false

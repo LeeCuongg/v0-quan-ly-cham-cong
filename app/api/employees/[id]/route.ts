@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSession, isManager } from "@/lib/auth"
+import { getSession, isManager, hashPassword } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 
 export async function PUT(
@@ -29,9 +29,9 @@ export async function PUT(
       phone,
     }
 
-    // Only include password if it's provided
+    // Only update password if provided
     if (password && password.trim() !== "") {
-      updateData.password = password
+      updateData.password_hash = await hashPassword(password)
     }
 
     const { data, error } = await supabase
