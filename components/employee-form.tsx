@@ -21,6 +21,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
     overtime_hourly_rate: employee?.overtime_hourly_rate || 30000,
     role: employee?.role || "employee",
     phone: employee?.phone || "",
+    password: "",
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -70,6 +71,19 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
               id="phone"
               value={formData.phone}
               onChange={(e) => handleChange("phone", e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">
+              {employee ? "Mật khẩu mới (để trống nếu không thay đổi)" : "Mật khẩu"}
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e) => handleChange("password", e.target.value)}
+              required={!employee}
             />
           </div>
 

@@ -15,20 +15,28 @@ export async function PUT(
 
     const employeeId = params.id
     const body = await request.json()
-    const { name, email, hourly_rate, overtime_hourly_rate, role, phone } = body
+    const { name, email, hourly_rate, overtime_hourly_rate, role, phone, password } = body
 
     const supabase = await createClient()
 
+    // Prepare update data
+    const updateData: any = {
+      name,
+      email,
+      hourly_rate: parseFloat(hourly_rate),
+      overtime_hourly_rate: parseFloat(overtime_hourly_rate) || 30000,
+      role,
+      phone,
+    }
+
+    // Only include password if it's provided
+    if (password && password.trim() !== "") {
+      updateData.password = password
+    }
+
     const { data, error } = await supabase
       .from("employees")
-      .update({
-        name,
-        email,
-        hourly_rate: parseFloat(hourly_rate),
-        overtime_hourly_rate: parseFloat(overtime_hourly_rate) || 30000,
-        role,
-        phone,
-      })
+      .update(updateData)
       .eq("id", employeeId)
       .select()
       .single()
