@@ -383,18 +383,16 @@ export default function TimesheetsPage() {
           <CardContent className="px-3 py-3 md:p-6">
             <div className="space-y-3 md:space-y-4">
               <div className="flex gap-2 overflow-x-auto md:flex-wrap md:overflow-visible">
-                <Button size="sm" variant="outline" onClick={() => setQuickRange("week")} className="whitespace-nowrap">
-                  Tuần này
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setQuickRange("prevWeek")} className="whitespace-nowrap">
-                  Tuần trước
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setQuickRange("month")} className="whitespace-nowrap">
-                  Tháng này
-                </Button>
                 <Button size="sm" variant="outline" onClick={() => setQuickRange("prevMonth")} className="whitespace-nowrap">
                   Tháng trước
                 </Button>
+                <Button size="sm" variant="outline" onClick={() => setQuickRange("prevWeek")} className="whitespace-nowrap">
+                  Tuần trước
+                </Button>              
+                <Button size="sm" variant="outline" onClick={() => setQuickRange("month")} className="whitespace-nowrap">
+                  Tháng này
+                </Button>
+                
               </div>
 
               <div className="grid gap-3 md:gap-4 md:grid-cols-5">
@@ -836,7 +834,7 @@ export default function TimesheetsPage() {
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
                         </div>
                         <div className="mt-1.5 flex items-center justify-between">
-                          <div className="font-semibold text-green-600 text-[16px]">{(((t.regular_pay || 0) + (t.overtime_pay || 0))).toLocaleString("vi-VN")}đ</div>
+                          <div className="font-semibold text-green-600 text-[16px]">Lương ca {t.shift_number || 1}: {(((t.regular_pay || 0) + (t.overtime_pay || 0))).toLocaleString("vi-VN")}đ</div>
                         </div>
 
                         <div className="mt-1.5 flex justify-end gap-1.5">
