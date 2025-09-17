@@ -464,9 +464,9 @@ export default function MyTimesheetsPage() {
                               {((timesheet.regular_pay || 0) + (timesheet.overtime_pay || 0)).toLocaleString("vi-VN")}đ
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              CB: {(timesheet.regular_pay || timesheet.salary || 0).toLocaleString("vi-VN")}đ
-                              {(timesheet.overtime_pay || timesheet.overtime_salary || 0) > 0 && (
-                                <div>TC: {(timesheet.overtime_pay || timesheet.overtime_salary || 0).toLocaleString("vi-VN")}đ</div>
+                              CB: {(timesheet.regular_pay || 0).toLocaleString("vi-VN")}đ
+                              {(timesheet.overtime_pay || 0) > 0 && (
+                                <div>TC: {(timesheet.overtime_pay || 0).toLocaleString("vi-VN")}đ</div>
                               )}
                             </div>
                           </td>

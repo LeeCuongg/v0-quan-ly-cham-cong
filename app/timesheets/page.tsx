@@ -164,7 +164,7 @@ export default function TimesheetsPage() {
 
   const calculateStats = (timesheetData: Timesheet[]) => {
     const totalHours = timesheetData.reduce((sum, ts) => sum + (ts.total_hours || ts.hours_worked || 0), 0)
-    const totalSalary = timesheetData.reduce((sum, ts) => sum + (ts.salary || 0), 0)
+    const baseSalary = timesheetData.reduce((sum, ts) => sum + (ts.regular_pay || 0), 0)
     const totalOvertimeHours = timesheetData.reduce((sum, ts) => sum + (ts.overtime_hours || 0), 0)
     const totalOvertimeSalary = timesheetData.reduce((sum, ts) => sum + (ts.overtime_pay || ts.overtime_salary || 0), 0)
     const completedShifts = timesheetData.filter(ts => ts.check_out_time || ts.check_out).length
@@ -172,7 +172,7 @@ export default function TimesheetsPage() {
 
     setStats({
       totalHours: Math.round(totalHours * 1000) / 1000,
-      totalSalary: Math.round(totalSalary),
+  totalSalary: Math.round(baseSalary),
       totalOvertimeHours: Math.round(totalOvertimeHours * 1000) / 1000,
       totalOvertimeSalary: Math.round(totalOvertimeSalary),
       totalEntries: timesheetData.length,
@@ -697,7 +697,7 @@ export default function TimesheetsPage() {
                 <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                   <span className="text-sm">Chi phí/giờ trung bình:</span>
                   <span className="font-bold">
-                    {stats.totalHours > 0 ? Math.round((stats.totalSalary + stats.totalOvertimeSalary) / (stats.totalHours + stats.totalOvertimeHours)).toLocaleString("vi-VN") : 0}đ
+                    {stats.totalHours > 0 ? Math.round((stats.totalSalary + stats.totalOvertimeSalary) / stats.totalHours).toLocaleString("vi-VN") : 0}đ
                   </span>
                 </div>
               </CardContent>

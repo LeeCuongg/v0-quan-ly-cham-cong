@@ -83,60 +83,45 @@ export async function GET(request: NextRequest) {
         const timeB = b.check_in_time || b.check_in || "00:00:00"
         return timeA.localeCompare(timeB)
       })
-      
-      // Xác định ca cuối cùng (check-in muộn nhất)
-      const lastShiftIndex = sortedShifts.length - 1
-      
+
+  // Phân bổ 10 giờ cơ bản theo thứ tự ca; phần vượt được tính tăng ca.
+  // Mục tiêu: Không để phần overtime trong ngày bị tính vào lương cơ bản của các ca trước đó.
+      let remainingRegular = dailyRegularHours
+
       sortedShifts.forEach((timesheet: any, index: number) => {
         const shiftHours = timesheet.total_hours || timesheet.hours_worked || 0
-        
-        let shiftRegularHours = shiftHours
-        let shiftOvertimeHours = 0
-        let regularPay = shiftHours * hourlyRate
-        let overtimePay = 0
-        
-        // Chỉ ca cuối cùng mới được tính overtime dựa trên TỔNG giờ trong ngày
-        if (index === lastShiftIndex && dailyOvertimeHours > 0) {
-          // Ca cuối cùng: gán tất cả overtime cho ca này và tính lương dựa trên tổng ngày
-          shiftRegularHours = shiftHours
-          shiftOvertimeHours = dailyOvertimeHours // Tất cả overtime cho ca cuối
-          
-          regularPay = shiftHours * hourlyRate
-          overtimePay = shiftOvertimeHours * overtimeHourlyRate
-        } else {
-          // Các ca khác: chỉ có regular pay
-          shiftRegularHours = shiftHours
-          shiftOvertimeHours = 0
-          regularPay = shiftHours * hourlyRate
-          overtimePay = 0
-        }
-        
-        // Tính lương sử dụng salary-utils cho từng ca
-        const salaryCalc = calculateDailySalary(shiftHours, hourlyRate, overtimeHourlyRate)
-        
+
+        const shiftRegularHours = Math.max(0, Math.min(shiftHours, remainingRegular))
+        const shiftOvertimeHours = Math.max(0, roundTo3(shiftHours - shiftRegularHours))
+
+        remainingRegular = roundTo3(Math.max(0, remainingRegular - shiftRegularHours))
+
+        const regularPay = Math.round(shiftRegularHours * hourlyRate)
+        const overtimePay = Math.round(shiftOvertimeHours * overtimeHourlyRate)
+
         processedTimesheets.push({
           ...timesheet,
-          total_hours: salaryCalc.regularHours + salaryCalc.overtimeHours,
-          hours_worked: salaryCalc.regularHours + salaryCalc.overtimeHours,
-          regular_hours: Math.round(shiftRegularHours * 1000) / 1000,
-          overtime_hours: Math.round(shiftOvertimeHours * 1000) / 1000,
-          regular_pay: Math.round(regularPay),
-          overtime_pay: Math.round(overtimePay),
-          overtime_salary: Math.round(overtimePay),
-          salary: Math.round(regularPay + overtimePay), // Tổng lương thực tế của ca này
+          total_hours: roundTo3(shiftHours),
+          hours_worked: roundTo3(shiftHours),
+          regular_hours: roundTo3(shiftRegularHours),
+          overtime_hours: roundTo3(shiftOvertimeHours),
+          regular_pay: regularPay,
+          overtime_pay: overtimePay,
+          overtime_salary: overtimePay,
+          salary: regularPay + overtimePay, // Tổng lương thực tế của ca này
           // Thông tin bổ sung về ngày
-          daily_total_hours: Math.round(totalHours * 1000) / 1000,
-          daily_regular_hours: Math.round(dailyRegularHours * 1000) / 1000,
-          daily_overtime_hours: Math.round(dailyOvertimeHours * 1000) / 1000,
+          daily_total_hours: roundTo3(totalHours),
+          daily_regular_hours: roundTo3(dailyRegularHours),
+          daily_overtime_hours: roundTo3(dailyOvertimeHours),
           shift_number: index + 1,
-          total_shifts_in_day: shifts.length,
+          total_shifts_in_day: sortedShifts.length,
         })
       })
     })
 
-    // Calculate summary
+    // Calculate summary (base and OT separated to tránh double-count)
     const totalHours = processedTimesheets.reduce((sum, ts) => sum + (ts.total_hours || ts.hours_worked || 0), 0)
-    const totalSalary = processedTimesheets.reduce((sum, ts) => sum + (ts.salary || 0), 0)
+    const baseSalary = processedTimesheets.reduce((sum, ts) => sum + (ts.regular_pay || 0), 0)
     const totalOvertimeHours = processedTimesheets.reduce((sum, ts) => sum + (ts.overtime_hours || 0), 0)
     const totalOvertimeSalary = processedTimesheets.reduce((sum, ts) => sum + (ts.overtime_pay || ts.overtime_salary || 0), 0)
     const totalDays = processedTimesheets.length
@@ -144,7 +129,7 @@ export async function GET(request: NextRequest) {
 
     const summary = {
       totalHours: Math.round(totalHours * 1000) / 1000,
-      totalSalary: Math.round(totalSalary),
+      totalSalary: Math.round(baseSalary),
       totalOvertimeHours: Math.round(totalOvertimeHours * 1000) / 1000,
       totalOvertimeSalary: Math.round(totalOvertimeSalary),
       totalDays,
@@ -179,3 +164,6 @@ export async function GET(request: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// Helpers để làm tròn nhất quán
+function roundTo3(n: number) { return Math.round(n * 1000) / 1000 }

@@ -92,37 +92,30 @@ export async function GET(request: NextRequest) {
         return timeA.localeCompare(timeB)
       })
       
-      // Xác định ca cuối cùng (check-in muộn nhất)
-      const lastShiftIndex = sortedShifts.length - 1
+  // Phân bổ 10 giờ cơ bản theo thứ tự ca; phần vượt được tính tăng ca
+  // Lý do: Tránh tính đúp 1h41' vào cả CB và OT. Quy tắc: trong một ngày,
+  // tổng giờ CB tối đa 10h. Chia 10h này dần vào từng ca theo thứ tự thời gian.
+  // Bất kỳ phần nào vượt 10h được đánh dấu là overtime và chỉ tính theo overtime_rate.
+      let remainingRegular = dailyRegularHours
       
       sortedShifts.forEach((timesheet: any, index: number) => {
         const shiftHours = timesheet.total_hours || 0
         const hourlyRate = timesheet.employees?.hourly_rate || 0
         const overtimeRate = timesheet.employees?.overtime_hourly_rate || 30000
-        
-        let shiftRegularHours = shiftHours
-        let shiftOvertimeHours = 0
-        let regularPay = shiftHours * hourlyRate
-        let overtimePay = 0
-        
-        // Chỉ ca cuối cùng mới được tính overtime dựa trên TỔNG giờ trong ngày
-        if (index === lastShiftIndex && dailyOvertimeHours > 0) {
-          // Ca cuối cùng: gán tất cả overtime cho ca này
-          shiftRegularHours = shiftHours
-          shiftOvertimeHours = dailyOvertimeHours // Tất cả overtime cho ca cuối
-          
-          regularPay = shiftHours * hourlyRate
-          overtimePay = shiftOvertimeHours * overtimeRate
-        } else {
-          // Các ca khác: chỉ có regular pay
-          shiftRegularHours = shiftHours
-          shiftOvertimeHours = 0
-          regularPay = shiftHours * hourlyRate
-          overtimePay = 0
-        }
-        
+
+        // Số giờ cơ bản của ca này = min(giờ ca, số giờ cơ bản còn lại trong ngày)
+        const shiftRegularHours = Math.max(0, Math.min(shiftHours, remainingRegular))
+        // Giờ tăng ca của ca này là phần còn lại nếu đã vượt ngưỡng 10h/ngày
+        const shiftOvertimeHours = Math.max(0, roundTo3(shiftHours - shiftRegularHours))
+
+        // Trừ phần giờ cơ bản vừa phân bổ
+        remainingRegular = roundTo3(Math.max(0, remainingRegular - shiftRegularHours))
+
+        // Lương
+        const regularPay = Math.round(shiftRegularHours * hourlyRate)
+        const overtimePay = Math.round(shiftOvertimeHours * overtimeRate)
         const totalSalary = regularPay + overtimePay
-        
+
         transformedData.push({
           id: timesheet.id,
           employee_id: timesheet.employee_id,
@@ -130,18 +123,18 @@ export async function GET(request: NextRequest) {
           date: timesheet.date,
           check_in_time: timesheet.check_in_time,
           check_out_time: timesheet.check_out_time,
-          total_hours: Math.round(shiftHours * 1000) / 1000,
-          regular_hours: Math.round(shiftRegularHours * 1000) / 1000,
-          overtime_hours: Math.round(shiftOvertimeHours * 1000) / 1000,
-          regular_pay: Math.round(regularPay),
-          overtime_pay: Math.round(overtimePay),
+          total_hours: roundTo3(shiftHours),
+          regular_hours: roundTo3(shiftRegularHours),
+          overtime_hours: roundTo3(shiftOvertimeHours),
+          regular_pay: regularPay,
+          overtime_pay: overtimePay,
           salary: Math.round(totalSalary),
           hourly_rate: hourlyRate,
           overtime_hourly_rate: overtimeRate,
           // Thông tin bổ sung về ngày
-          daily_total_hours: Math.round(totalHours * 100) / 100,
-          daily_regular_hours: Math.round(dailyRegularHours * 100) / 100,
-          daily_overtime_hours: Math.round(dailyOvertimeHours * 100) / 100,
+          daily_total_hours: roundTo2(totalHours),
+          daily_regular_hours: roundTo2(dailyRegularHours),
+          daily_overtime_hours: roundTo2(dailyOvertimeHours),
           shift_number: index + 1,
           total_shifts_in_day: shifts.length,
         })
@@ -164,3 +157,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch timesheets" }, { status: 500 })
   }
 }
+
+// Helpers cùng file để đảm bảo làm tròn thống nhất
+function roundTo3(n: number) { return Math.round(n * 1000) / 1000 }
+function roundTo2(n: number) { return Math.round(n * 100) / 100 }
