@@ -600,8 +600,22 @@ export default function TimesheetsPage() {
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="text-[18px] md:text-base">Bảng chấm công tổng hợp</CardTitle>
+              <CardTitle className="text-[19px] md:text-base">Bảng chấm công tổng hợp</CardTitle>
               <div className="flex items-center gap-2">
+                {/* Mobile quick employee filter */}
+                <div className="md:hidden">
+                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                    <SelectTrigger className="h-9 w-[160px]">
+                      <SelectValue placeholder="Nhân viên" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả</SelectItem>
+                      {employees.map((e: Employee) => (
+                        <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button onClick={fetchTimesheets} disabled={loading} variant="outline" size="icon" className="md:hidden" aria-label="Làm mới">
                   <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -766,8 +780,8 @@ export default function TimesheetsPage() {
                       <div key={t.id || idx} className="rounded-lg border p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="font-medium text-[15px]">{t.employee_name}</div>
-                            <div className="text-[13px] text-muted-foreground flex items-center gap-1.5">
+                            <div className="font-semibold text-[16px]">{t.employee_name}</div>
+                            <div className="text-[13.5px] text-muted-foreground flex items-center gap-1.5">
                               <span>{formatDate(t.date)}</span>
                               <span>• Ca {t.shift_number || 1}</span>
                               {(t.total_shifts_in_day || 1) > 1 && (
@@ -780,7 +794,7 @@ export default function TimesheetsPage() {
 
                         <div className="mt-2 grid grid-cols-2 gap-2">
                           <div className="rounded-md bg-muted px-2 py-1.5">
-                            <div className="text-[11px] text-muted-foreground">Giờ đến</div>
+                            <div className="text-[12px] text-muted-foreground">Giờ đến</div>
                             {editingTimesheet === t.id ? (
                               <Input
                                 type="time"
@@ -789,11 +803,11 @@ export default function TimesheetsPage() {
                                 className="h-9"
                               />
                             ) : (
-                              <div className="font-mono text-sm">{formatTime(t.check_in_time || t.check_in)}</div>
+                              <div className="font-mono text-[15px]">{formatTime(t.check_in_time || t.check_in)}</div>
                             )}
                           </div>
                           <div className="rounded-md bg-muted px-2 py-1.5">
-                            <div className="text-[11px] text-muted-foreground">Giờ về</div>
+                            <div className="text-[12px] text-muted-foreground">Giờ về</div>
                             {editingTimesheet === t.id ? (
                               <Input
                                 type="time"
@@ -802,22 +816,22 @@ export default function TimesheetsPage() {
                                 className="h-9"
                               />
                             ) : (
-                              <div className="font-mono text-sm">{formatTime(t.check_out_time || t.check_out)}</div>
+                              <div className="font-mono text-[15px]">{formatTime(t.check_out_time || t.check_out)}</div>
                             )}
                           </div>
                         </div>
 
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <Badge variant="secondary" className="text-[11px]">Ca: {formatHoursMinutes((t.total_hours || t.hours_worked || 0))}</Badge>
-                          <Badge variant="secondary" className="text-[11px]">Ngày: {formatHoursMinutes(t.daily_total_hours || 0)}</Badge>
-                          <Badge variant="secondary" className="text-[11px]">TC: {formatHoursMinutes(t.daily_overtime_hours || 0)}</Badge>
+                          <Badge variant="secondary" className="text-[12px]">Ca: {formatHoursMinutes((t.total_hours || t.hours_worked || 0))}</Badge>
+                          <Badge variant="secondary" className="text-[12px]">Ngày: {formatHoursMinutes(t.daily_total_hours || 0)}</Badge>
+                          <Badge variant="secondary" className="text-[12px]">TC: {formatHoursMinutes(t.daily_overtime_hours || 0)}</Badge>
                         </div>
 
                         <div className="mt-2 flex items-center justify-between">
-                          <div className="text-[13px] text-muted-foreground">
+                          <div className="text-[14px] text-muted-foreground">
                             CB: {(t.regular_pay || 0).toLocaleString("vi-VN")}đ{(t.overtime_pay || 0) > 0 ? ` • TC: ${(t.overtime_pay || 0).toLocaleString("vi-VN")}đ` : ""}
                           </div>
-                          <div className="font-semibold text-green-600 text-[15px]">{(((t.regular_pay || 0) + (t.overtime_pay || 0))).toLocaleString("vi-VN")}đ</div>
+                          <div className="font-semibold text-green-600 text-[16px]">{(((t.regular_pay || 0) + (t.overtime_pay || 0))).toLocaleString("vi-VN")}đ</div>
                         </div>
 
                         <div className="mt-2 flex justify-end gap-2">
