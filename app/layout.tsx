@@ -9,7 +9,7 @@ import { AuthProvider } from "@/components/auth-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "TimeTracker Pro - Quản lý Chấm công",
+  title: "Công Anh Chấm Công - Quản lý Chấm công",
   description: "Hệ thống quản lý chấm công chuyên nghiệp",
   generator: "v0.app",
 }

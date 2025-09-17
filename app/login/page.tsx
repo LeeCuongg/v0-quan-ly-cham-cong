@@ -80,7 +80,7 @@ export default function LoginPage() {
               <Clock className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">TimeTracker Pro</h1>
+              <h1 className="text-2xl font-bold text-foreground">Công Anh Chấm Công</h1>
               <p className="text-sm text-muted-foreground">Hệ thống chấm công</p>
             </div>
           </div>
@@ -161,7 +161,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-xs text-muted-foreground">
-            © 2024 TimeTracker Pro. Hệ thống quản lý chấm công chuyên nghiệp.
+            © 2024 Công Anh Chấm Công. Hệ thống quản lý chấm công chuyên nghiệp.
           </p>
         </div>
       </div>

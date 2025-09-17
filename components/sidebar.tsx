@@ -111,7 +111,7 @@ export function Sidebar({ userRole = "manager" }: SidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
         <Building2 className="h-8 w-8 text-sidebar-primary" />
-        <span className="text-xl font-bold text-sidebar-foreground">TimeTracker Pro</span>
+        <span className="text-xl font-bold text-sidebar-foreground">Công Anh Chấm Công</span>
       </div>
 
       <div className="px-4 py-2 border-b border-sidebar-border">
