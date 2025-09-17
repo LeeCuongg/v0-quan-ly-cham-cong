@@ -51,6 +51,7 @@ interface Summary {
 interface ApiResponse {
   timesheets: Timesheet[]
   summary: Summary
+  error?: string
   meta?: {
     total: number
     dateRange: {
@@ -174,6 +175,52 @@ export default function MyTimesheetsPage() {
     }
   }
 
+  const handleExportCSV = () => {
+    try {
+      const headers = [
+        "date","shift_number","total_shifts_in_day","check_in","check_out","shift_hours","daily_total_hours","daily_overtime_hours","regular_pay","overtime_pay","total_pay"
+      ]
+
+  const rows = timesheets.map((t: Timesheet) => {
+        const checkIn = t.check_in_time || t.check_in || ""
+        const checkOut = t.check_out_time || t.check_out || ""
+        const shiftHours = t.total_hours ?? t.hours_worked ?? 0
+        const regularPay = t.regular_pay ?? 0
+        const overtimePay = t.overtime_pay ?? 0
+        const totalPay = regularPay + overtimePay
+        return [
+          t.date,
+          String(t.shift_number ?? 1),
+          String(t.total_shifts_in_day ?? 1),
+          typeof checkIn === "string" ? checkIn : String(checkIn),
+          typeof checkOut === "string" ? checkOut : String(checkOut),
+          String(shiftHours),
+          String(t.daily_total_hours ?? 0),
+          String(t.daily_overtime_hours ?? 0),
+          String(regularPay),
+          String(overtimePay),
+          String(totalPay),
+        ]
+      })
+
+      const csv = [
+        headers.join(","),
+        ...rows.map((r: string[]) => r.map((v: string) => `"${String(v).replace(/"/g, '""')}"`).join(",")),
+      ].join("\n")
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      const fileName = `my-timesheets_${startDate}_to_${endDate}.csv`
+      a.href = url
+      a.download = fileName
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error("Export CSV error", e)
+      toast({ title: "Xuất CSV thất bại", description: "Đã có lỗi khi xuất dữ liệu.", variant: "destructive" })
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN", {
       day: "2-digit",
@@ -235,8 +282,8 @@ export default function MyTimesheetsPage() {
             <h1 className="text-3xl font-bold text-foreground">Lịch sử chấm công</h1>
             <p className="text-muted-foreground">Xem lại thời gian làm việc của bạn</p>
           </div>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+          {/* Summary Cards (Desktop) */}
+          <div className="hidden md:grid md:grid-cols-7 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Tổng giờ làm</CardTitle>
@@ -319,6 +366,56 @@ export default function MyTimesheetsPage() {
             </Card>
           </div>
 
+          {/* Summary (Mobile condensed) */}
+          <div className="md:hidden -mx-4 px-4">
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1">
+              <Card className="min-w-[58%] snap-start">
+                <CardHeader className="py-3 pb-1">
+                  <CardTitle className="text-xs font-medium flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" /> Tổng giờ
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 pb-3">
+                  <div className="text-xl font-bold">{formatHours(summary.totalHours)}</div>
+                  <p className="text-[11px] text-muted-foreground">TB: {formatHours(summary.avgHoursPerDay)}/ngày</p>
+                </CardContent>
+              </Card>
+              <Card className="min-w-[58%] snap-start">
+                <CardHeader className="py-3 pb-1">
+                  <CardTitle className="text-xs font-medium flex items-center gap-2">
+                    <DollarSign className="h-3.5 w-3.5 text-primary" /> Tổng lương
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 pb-3">
+                  <div className="text-xl font-bold text-primary">{(summary.totalSalary + summary.totalOvertimeSalary).toLocaleString("vi-VN")}đ</div>
+                  <p className="text-[11px] text-muted-foreground">CB: {summary.totalSalary.toLocaleString("vi-VN")}đ • TC: {summary.totalOvertimeSalary.toLocaleString("vi-VN")}đ</p>
+                </CardContent>
+              </Card>
+              <Card className="min-w-[58%] snap-start">
+                <CardHeader className="py-3 pb-1">
+                  <CardTitle className="text-xs font-medium flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" /> Ngày / Ca
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 pb-3">
+                  <div className="text-xl font-bold">{summary.totalDays} ngày</div>
+                  <p className="text-[11px] text-muted-foreground">{timesheets.length} ca</p>
+                </CardContent>
+              </Card>
+              <Card className="min-w-[58%] snap-start">
+                <CardHeader className="py-3 pb-1">
+                  <CardTitle className="text-xs font-medium flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5 text-orange-500" /> Tăng ca
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 pb-3">
+                  <div className="text-xl font-bold text-orange-600">{formatHours(summary.totalOvertimeHours)}</div>
+                  <p className="text-[11px] text-muted-foreground">TC: {summary.totalOvertimeSalary.toLocaleString("vi-VN")}đ</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
           {/* Filters */}
           <Card>
             <CardHeader>
@@ -328,17 +425,17 @@ export default function MyTimesheetsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" onClick={() => setQuickRange("week")}>
+              <div className="flex gap-2 overflow-x-auto md:flex-wrap md:overflow-visible">
+                <Button size="sm" variant="outline" onClick={() => setQuickRange("week")} className="whitespace-nowrap">
                   Tuần này
                 </Button>
-                <Button variant="outline" onClick={() => setQuickRange("prevWeek")}>
+                <Button size="sm" variant="outline" onClick={() => setQuickRange("prevWeek")} className="whitespace-nowrap">
                   Tuần trước
                 </Button>
-                <Button variant="outline" onClick={() => setQuickRange("month")}>
+                <Button size="sm" variant="outline" onClick={() => setQuickRange("month")} className="whitespace-nowrap">
                   Tháng này
                 </Button>
-                <Button variant="outline" onClick={() => setQuickRange("prevMonth")}>
+                <Button size="sm" variant="outline" onClick={() => setQuickRange("prevMonth")} className="whitespace-nowrap">
                   Tháng trước
                 </Button>
               </div>
@@ -346,20 +443,22 @@ export default function MyTimesheetsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startDate">Từ ngày</Label>
-                  <Input 
-                    id="startDate" 
-                    type="date" 
-                    value={startDate} 
-                    onChange={(e) => setStartDate(e.target.value)} 
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="h-9"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endDate">Đến ngày</Label>
-                  <Input 
-                    id="endDate" 
-                    type="date" 
-                    value={endDate} 
-                    onChange={(e) => setEndDate(e.target.value)} 
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="h-9"
                   />
                 </div>
               </div>
@@ -371,10 +470,18 @@ export default function MyTimesheetsPage() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Bảng chấm công</CardTitle>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Xuất Excel
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button onClick={fetchTimesheets} disabled={loading} variant="outline" size="icon" className="md:hidden" aria-label="Làm mới">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={handleExportCSV} variant="outline" size="sm" className="gap-2 hidden md:inline-flex">
+                    <Download className="h-4 w-4" />
+                    Xuất CSV
+                  </Button>
+                  <Button onClick={handleExportCSV} variant="outline" size="icon" className="md:hidden" aria-label="Xuất CSV">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -390,94 +497,146 @@ export default function MyTimesheetsPage() {
                   <p className="text-sm">Thử thay đổi khoảng thời gian hoặc kiểm tra kết nối</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3 font-medium">Ngày / Ca</th>
-                        <th className="text-left p-3 font-medium">Check In</th>
-                        <th className="text-left p-3 font-medium">Check Out</th>
-                        <th className="text-left p-3 font-medium">Giờ ca</th>
-                        <th className="text-left p-3 font-medium">Tổng giờ/ngày</th>
-                        <th className="text-left p-3 font-medium">TC/ngày</th>
-                        <th className="text-left p-3 font-medium">Lương ca</th>
-                        <th className="text-left p-3 font-medium">Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {timesheets
-                        .sort((a, b) => {
-                          // First sort by date (newest first)
-                          const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
-                          if (dateCompare !== 0) return dateCompare
-                          
-                          // Then sort by check-in time (latest first within same day)
-                          const aCheckIn = a.check_in_time || a.check_in || ""
-                          const bCheckIn = b.check_in_time || b.check_in || ""
-                          return bCheckIn.localeCompare(aCheckIn)
-                        })
-                        .map((timesheet, index) => (
-                        <tr key={timesheet.id || index} className="border-b hover:bg-muted/50 transition-colors">
-                          <td className="p-3">
-                            <div className="font-medium">
-                              {formatDate(timesheet.date)}
-                            </div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-1">
-                              <span>Ca {timesheet.shift_number || 1}</span>
-                              {(timesheet.total_shifts_in_day || 1) > 1 && (
-                                <Badge variant="secondary" className="text-xs px-1 py-0">
-                                  {timesheet.total_shifts_in_day} ca
-                                </Badge>
-                              )}
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-mono text-sm">
-                              {formatTime(timesheet.check_in_time || timesheet.check_in)}
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-mono text-sm">
-                              {formatTime(timesheet.check_out_time || timesheet.check_out)}
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-blue-600">
-                              {formatHours((timesheet.total_hours || timesheet.hours_worked || 0))}
-                            </div>
-                            <div className="text-xs text-muted-foreground">Ca này</div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-purple-600">
-                              {formatHours(timesheet.daily_total_hours || 0)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">Tổng ngày</div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-orange-600">
-                              {formatHours(timesheet.daily_overtime_hours || 0)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">TC ngày</div>
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-green-600">
-                              {((timesheet.regular_pay || 0) + (timesheet.overtime_pay || 0)).toLocaleString("vi-VN")}đ
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              CB: {(timesheet.regular_pay || 0).toLocaleString("vi-VN")}đ
-                              {(timesheet.overtime_pay || 0) > 0 && (
-                                <div>TC: {(timesheet.overtime_pay || 0).toLocaleString("vi-VN")}đ</div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            {getStatusBadge(timesheet)}
-                          </td>
+                <>
+                  {/* Desktop table */}
+                  <div className="overflow-x-auto hidden md:block">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium">Ngày / Ca</th>
+                          <th className="text-left p-3 font-medium">Check In</th>
+                          <th className="text-left p-3 font-medium">Check Out</th>
+                          <th className="text-left p-3 font-medium">Giờ ca</th>
+                          <th className="text-left p-3 font-medium">Tổng giờ/ngày</th>
+                          <th className="text-left p-3 font-medium">TC/ngày</th>
+                          <th className="text-left p-3 font-medium">Lương ca</th>
+                          <th className="text-left p-3 font-medium">Trạng thái</th>
                         </tr>
+                      </thead>
+                      <tbody>
+                        {timesheets
+                          .sort((a, b) => {
+                            const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
+                            if (dateCompare !== 0) return dateCompare
+                            const aCheckIn = a.check_in_time || a.check_in || ""
+                            const bCheckIn = b.check_in_time || b.check_in || ""
+                            return bCheckIn.localeCompare(aCheckIn)
+                          })
+                          .map((timesheet, index) => (
+                            <tr key={timesheet.id || index} className="border-b hover:bg-muted/50 transition-colors">
+                              <td className="p-3">
+                                <div className="font-medium">
+                                  {formatDate(timesheet.date)}
+                                </div>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <span>Ca {timesheet.shift_number || 1}</span>
+                                  {(timesheet.total_shifts_in_day || 1) > 1 && (
+                                    <Badge variant="secondary" className="text-xs px-1 py-0">
+                                      {timesheet.total_shifts_in_day} ca
+                                    </Badge>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="font-mono text-sm">
+                                  {formatTime(timesheet.check_in_time || timesheet.check_in)}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="font-mono text-sm">
+                                  {formatTime(timesheet.check_out_time || timesheet.check_out)}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="font-semibold text-blue-600">
+                                  {formatHours((timesheet.total_hours || timesheet.hours_worked || 0))}
+                                </div>
+                                <div className="text-xs text-muted-foreground">Ca này</div>
+                              </td>
+                              <td className="p-3">
+                                <div className="font-semibold text-purple-600">
+                                  {formatHours(timesheet.daily_total_hours || 0)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">Tổng ngày</div>
+                              </td>
+                              <td className="p-3">
+                                <div className="font-semibold text-orange-600">
+                                  {formatHours(timesheet.daily_overtime_hours || 0)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">TC ngày</div>
+                              </td>
+                              <td className="p-3">
+                                <div className="font-semibold text-green-600">
+                                  {((timesheet.regular_pay || 0) + (timesheet.overtime_pay || 0)).toLocaleString("vi-VN")}đ
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  CB: {(timesheet.regular_pay || 0).toLocaleString("vi-VN")}đ
+                                  {(timesheet.overtime_pay || 0) > 0 && (
+                                    <div>TC: {(timesheet.overtime_pay || 0).toLocaleString("vi-VN")}đ</div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                {getStatusBadge(timesheet)}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile list */}
+                  <div className="md:hidden space-y-3">
+                    {timesheets
+                      .sort((a, b) => {
+                        const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
+                        if (dateCompare !== 0) return dateCompare
+                        const aCheckIn = a.check_in_time || a.check_in || ""
+                        const bCheckIn = b.check_in_time || b.check_in || ""
+                        return bCheckIn.localeCompare(aCheckIn)
+                      })
+                      .map((t, idx) => (
+                        <div key={t.id || idx} className="rounded-lg border p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-medium">{formatDate(t.date)}</div>
+                              <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                                <span>Ca {t.shift_number || 1}</span>
+                                {(t.total_shifts_in_day || 1) > 1 && (
+                                  <Badge variant="secondary" className="text-[10px] px-1 py-0">{t.total_shifts_in_day} ca</Badge>
+                                )}
+                              </div>
+                            </div>
+                            {getStatusBadge(t)}
+                          </div>
+
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            <div className="rounded-md bg-muted px-2 py-1.5">
+                              <div className="text-[10px] text-muted-foreground">Check In</div>
+                              <div className="font-mono text-sm">{formatTime(t.check_in_time || t.check_in)}</div>
+                            </div>
+                            <div className="rounded-md bg-muted px-2 py-1.5">
+                              <div className="text-[10px] text-muted-foreground">Check Out</div>
+                              <div className="font-mono text-sm">{formatTime(t.check_out_time || t.check_out)}</div>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <Badge variant="secondary" className="text-[11px]">Ca: {formatHours((t.total_hours || t.hours_worked || 0))}</Badge>
+                            <Badge variant="secondary" className="text-[11px]">Ngày: {formatHours(t.daily_total_hours || 0)}</Badge>
+                            <Badge variant="secondary" className="text-[11px]">TC: {formatHours(t.daily_overtime_hours || 0)}</Badge>
+                          </div>
+
+                          <div className="mt-2 flex items-center justify-between">
+                            <div className="text-[11px] text-muted-foreground">
+                              CB: {(t.regular_pay || 0).toLocaleString("vi-VN")}đ{(t.overtime_pay || 0) > 0 ? ` • TC: ${(t.overtime_pay || 0).toLocaleString("vi-VN")}đ` : ""}
+                            </div>
+                            <div className="font-semibold text-green-600">{(((t.regular_pay || 0) + (t.overtime_pay || 0))).toLocaleString("vi-VN")}đ</div>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
