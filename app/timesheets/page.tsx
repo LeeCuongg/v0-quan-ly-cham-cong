@@ -597,7 +597,7 @@ export default function TimesheetsPage() {
         
 
         {/* Timesheets Table */}
-        <Card>
+        <Card className="mx-auto w-full max-w-[380px] md:max-w-none md:w-full">
           <CardHeader className="px-3 py-2 md:p-6">
             <div className="flex justify-between items-center gap-2">
               <CardTitle className="text-[19px] md:text-base">Bảng chấm công tổng hợp</CardTitle>
