@@ -366,7 +366,7 @@ export default function TimesheetsPage() {
 
   return (
     <ProtectedPage requiredRole="manager">
-      <main className="mx-auto w-full max-w-[380px] md:max-w-none md:w-full p-3 md:p-6 lg:p-8">
+      <main className="mx-auto w-full max-w-[420px] md:max-w-none md:w-full p-3 md:p-6 lg:p-8">
         {/* Header */}
         <div className="mb-4 md:mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-1.5 md:mb-2">Quản lý Chấm công</h1>
@@ -597,10 +597,10 @@ export default function TimesheetsPage() {
         
 
         {/* Timesheets Table */}
-        <Card className="mx-auto w-full max-w-[380px] md:max-w-none md:w-full">
+        <Card className="mx-auto w-full max-w-[420px] md:max-w-none md:w-full">
           <CardHeader className="px-3 py-2 md:p-6">
             <div className="flex justify-between items-center gap-2">
-              <CardTitle className="text-[19px] md:text-base">Bảng chấm công tổng hợp</CardTitle>
+              <CardTitle className="text-[19px] md:text-base">Bảng chấm công</CardTitle>
               <div className="flex items-center gap-2">
                 {/* Mobile quick employee filter */}
                 <div className="md:hidden">
