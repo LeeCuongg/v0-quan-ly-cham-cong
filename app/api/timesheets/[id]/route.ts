@@ -25,17 +25,25 @@ function calcTotalHours(checkIn: string, checkOut: string): number {
   if (inMin == null || outMin == null) return 0
   let diff = outMin - inMin
   if (diff < 0) diff += 24 * 60
-  return Math.round((diff / 60) * 100) / 100
+  // Sửa lỗi: không làm tròn giờ để tính lương chính xác theo phút
+  return diff / 60
 }
 
 // New: Tính lương với ca làm 10 tiếng
 function computeSalary10h(totalHours: number, hourlyRate: number, overtimeHourlyRate: number) {
   const regularHours = Math.min(totalHours, 10)
   const overtimeHours = Math.max(totalHours - 10, 0)
-  const regularPay = Math.round(regularHours * hourlyRate)
-  const overtimePay = Math.round(overtimeHours * overtimeHourlyRate)
+  // Sửa lỗi: tính lương chính xác không làm tròn trung gian
+  const regularPay = regularHours * hourlyRate
+  const overtimePay = overtimeHours * overtimeHourlyRate
   const totalPay = regularPay + overtimePay
-  return { regularHours, overtimeHours, regularPay, overtimePay, totalPay }
+  return { 
+    regularHours: Math.round(regularHours * 100) / 100, 
+    overtimeHours: Math.round(overtimeHours * 100) / 100, 
+    regularPay: Math.round(regularPay), 
+    overtimePay: Math.round(overtimePay), 
+    totalPay: Math.round(totalPay) 
+  }
 }
 
 export async function PATCH(
@@ -116,7 +124,8 @@ export async function PATCH(
       const totalHours = calcTotalHours(newCheckIn as string, newCheckOut as string)
       const salary = computeSalary10h(totalHours, hourlyRate, overtimeHourlyRate)
 
-      updateData.total_hours = Math.round(totalHours * 100) / 100
+      // Sửa lỗi: lưu total_hours chính xác từ salary calculation
+      updateData.total_hours = salary.regularHours + salary.overtimeHours
       updateData.hours_worked = updateData.total_hours
       updateData.regular_hours = salary.regularHours
       updateData.overtime_hours = salary.overtimeHours

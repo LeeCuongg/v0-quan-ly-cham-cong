@@ -75,5 +75,6 @@ export function calculateTotalHours(checkIn: string, checkOut: string): number {
     totalMinutes += 24 * 60; // Add 24 hours
   }
   
-  return Math.round((totalMinutes / 60) * 100) / 100; // Round to 2 decimal places
+  // Sửa lỗi: trả về giờ chính xác, không làm tròn để tính lương đúng
+  return totalMinutes / 60;
 }

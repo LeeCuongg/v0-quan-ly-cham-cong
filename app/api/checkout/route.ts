@@ -279,5 +279,6 @@ function calculateTotalHours(checkIn: string, checkOut: string): number {
     totalMinutes += 24 * 60
   }
 
-  return Math.round((totalMinutes / 60) * 100) / 100
+  // Sửa lỗi: trả về giờ chính xác, không làm tròn để tính lương đúng
+  return totalMinutes / 60
 }

@@ -532,10 +532,10 @@ export function calculateTotalHours(checkIn: string, checkOut: string): number {
       console.log("[CALC] Adjusted for next day, total hours:", totalHours)
     }
 
-    const finalHours = Math.round(totalHours * 100) / 100
-    console.log("[CALC] Final total hours:", finalHours)
+    // Sửa lỗi: không làm tròn để tính lương chính xác
+    console.log("[CALC] Final total hours:", totalHours)
 
-    return Math.max(0, finalHours)
+    return Math.max(0, totalHours)
   } catch (error) {
     console.error("[CALC] Error calculating hours:", error)
     return 0
