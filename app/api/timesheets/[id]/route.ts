@@ -25,6 +25,28 @@ function calcTotalHours(checkIn: string, checkOut: string): number {
   return calculateTotalHours(checkIn, checkOut);
 }
 
+// Chuẩn hóa time string để phục vụ validate/calc
+// Hỗ trợ cả "HH:mm" và "HH:mm:ss"; trả về dạng "HH:mm"
+function toHm(value?: string | null): string | null {
+  if (!value) return null
+  const s = value.trim()
+  // HH:mm:ss -> HH:mm
+  const mSec = /^(\d{1,2}):(\d{2}):(\d{2})$/.exec(s)
+  if (mSec) {
+    const h = mSec[1].padStart(2, "0")
+    const m = mSec[2].padStart(2, "0")
+    return `${h}:${m}`
+  }
+  // HH:mm -> HH:mm
+  const mMin = /^(\d{1,2}):(\d{2})$/.exec(s)
+  if (mMin) {
+    const h = mMin[1].padStart(2, "0")
+    const m = mMin[2].padStart(2, "0")
+    return `${h}:${m}`
+  }
+  return null
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -39,7 +61,15 @@ export async function PATCH(
     }
 
     const body = await request.json().catch(() => ({} as any))
-    let { check_in, check_out } = body as { check_in?: string; check_out?: string }
+    // Chấp nhận cả check_in/check_out hoặc check_in_time/check_out_time
+    let {
+      check_in,
+      check_out,
+      check_in_time,
+      check_out_time,
+    } = body as { check_in?: string; check_out?: string; check_in_time?: string; check_out_time?: string }
+    if (!check_in && check_in_time) check_in = check_in_time
+    if (!check_out && check_out_time) check_out = check_out_time
     const timesheetId = params.id
 
     console.log("[TS PATCH] ===== START =====")
@@ -65,8 +95,8 @@ export async function PATCH(
     }
 
     // Ghép giá trị mới với cũ (nếu có existing)
-    const newCheckIn = (check_in ?? existing?.check_in_time ?? existing?.check_in) ?? null
-    const newCheckOut = (check_out ?? existing?.check_out_time ?? existing?.check_out) ?? null
+  const newCheckIn = (check_in ?? existing?.check_in_time ?? existing?.check_in) ?? null
+  const newCheckOut = (check_out ?? existing?.check_out_time ?? existing?.check_out) ?? null
     console.log("[TS PATCH] Final times to use:", { newCheckIn, newCheckOut })
 
     // Xác định đơn giá (nếu có existing.employee_id thì lấy từ employees, nếu không có dùng mặc định)
@@ -87,20 +117,25 @@ export async function PATCH(
     console.log("[TS PATCH] Rates:", { hourlyRate, overtimeHourlyRate })
 
     // Tính toán khi đủ check_in & check_out hợp lệ
-    const canRecalculate = validateTimeFormat(newCheckIn || '') && validateTimeFormat(newCheckOut || '') && newCheckIn && newCheckOut
-    console.log("[TS PATCH] Can recalculate?", canRecalculate)
+  // Chuẩn hóa về HH:mm để validate/calc (tránh lỗi khi client gửi HH:mm:ss)
+  const calcIn = toHm(newCheckIn)
+  const calcOut = toHm(newCheckOut)
+  const canRecalculate = !!(calcIn && calcOut && validateTimeFormat(calcIn) && validateTimeFormat(calcOut))
+  console.log("[TS PATCH] Can recalculate?", canRecalculate, { calcIn, calcOut })
 
     // Chỉ cập nhật các cột có trong bảng (theo schema ảnh)
+    // Khi có đủ giờ vào/ra hợp lệ (HH:mm hoặc HH:mm:ss), sẽ tự động tính lại
+    // total_hours, regular/overtime hours & pay, và salary rồi lưu xuống DB.
     const updateData: any = {
       updated_at: new Date().toISOString(),
     }
 
     // Chỉ set 2 field thời gian nếu có giá trị mới hoặc có thể ghép với existing
-    if (newCheckIn !== null) updateData.check_in_time = newCheckIn
-    if (newCheckOut !== null) updateData.check_out_time = newCheckOut
+  if (newCheckIn !== null) updateData.check_in_time = newCheckIn
+  if (newCheckOut !== null) updateData.check_out_time = newCheckOut
 
     if (canRecalculate) {
-      const totalHours = calcTotalHours(newCheckIn as string, newCheckOut as string)
+      const totalHours = calcTotalHours(calcIn as string, calcOut as string)
       const salary = calculateDailySalary(totalHours, hourlyRate, overtimeHourlyRate)
 
       updateData.total_hours = salary.regularHours + salary.overtimeHours
