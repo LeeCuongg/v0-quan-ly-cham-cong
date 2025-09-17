@@ -366,7 +366,7 @@ export default function TimesheetsPage() {
 
   return (
     <ProtectedPage requiredRole="manager">
-      <main className="p-3 md:p-6 lg:p-8">
+      <main className="mx-auto w-full max-w-[380px] md:max-w-none md:w-full p-3 md:p-6 lg:p-8">
         {/* Header */}
         <div className="mb-4 md:mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-1.5 md:mb-2">Quản lý Chấm công</h1>
@@ -533,8 +533,8 @@ export default function TimesheetsPage() {
           </Card>
         </div>
 
-        {/* Stats (Mobile condensed) */}
-        <div className="md:hidden -mx-3 px-3 mb-4">
+  {/* Stats (Mobile condensed) */}
+  <div className="md:hidden mb-4">
           <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1">
             <Card className="min-w-[58%] snap-start">
               <CardHeader className="py-3 pb-1">
