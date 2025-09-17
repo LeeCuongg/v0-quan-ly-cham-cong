@@ -12,10 +12,17 @@ import {
 function computeSalary10h(totalHours: number, hourlyRate: number, overtimeHourlyRate: number) {
   const regularHours = Math.min(totalHours, 10)
   const overtimeHours = Math.max(totalHours - 10, 0)
-  const regularPay = Math.round(regularHours * hourlyRate)
-  const overtimePay = Math.round(overtimeHours * overtimeHourlyRate)
+  // Sửa lỗi: tính lương chính xác không làm tròn trung gian
+  const regularPay = regularHours * hourlyRate
+  const overtimePay = overtimeHours * overtimeHourlyRate
   const totalPay = regularPay + overtimePay
-  return { regularHours, overtimeHours, regularPay, overtimePay, totalPay }
+  return { 
+    regularHours: Math.round(regularHours * 100) / 100, 
+    overtimeHours: Math.round(overtimeHours * 100) / 100, 
+    regularPay: Math.round(regularPay), 
+    overtimePay: Math.round(overtimePay), 
+    totalPay: Math.round(totalPay) 
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -124,7 +131,8 @@ export async function POST(request: NextRequest) {
     // Chuẩn bị dữ liệu update
     const updateData = {
       check_out_time: checkOutTime,
-      total_hours: Math.round(totalHours * 100) / 100,
+      // Sửa lỗi: lưu total_hours chính xác từ salary calculation
+      total_hours: salaryCalculation.regularHours + salaryCalculation.overtimeHours,
       regular_hours: salaryCalculation.regularHours,
       overtime_hours: salaryCalculation.overtimeHours,
       regular_pay: salaryCalculation.regularPay,
