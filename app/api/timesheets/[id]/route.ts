@@ -84,14 +84,14 @@ export async function PATCH(
 
     // Xác định đơn giá (nếu có existing.employee_id thì lấy từ employees, nếu không có dùng mặc định)
     let hourlyRate = 23333
-    let overtimeHourlyRate = Math.round(hourlyRate * 1.5)
+    let overtimeHourlyRate = 30000 // Default to 30000 instead of 1.5x hourlyRate
     try {
       if (existing?.employee_id) {
         const employees = await getAllEmployees()
         const emp = employees.find((e: any) => e.id === existing.employee_id)
         if (emp) {
           hourlyRate = Number(emp.hourly_rate || hourlyRate)
-          overtimeHourlyRate = Number(emp.overtime_hourly_rate || overtimeHourlyRate)
+          overtimeHourlyRate = Number(emp.overtime_hourly_rate || 30000) // Use DB value or default 30000
         }
       }
     } catch (rateErr) {

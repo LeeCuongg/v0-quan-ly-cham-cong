@@ -95,14 +95,13 @@ export async function GET(request: NextRequest) {
         let regularPay = shiftHours * hourlyRate
         let overtimePay = 0
         
-        // Chỉ ca cuối cùng mới được tính overtime
+        // Chỉ ca cuối cùng mới được tính overtime dựa trên TỔNG giờ trong ngày
         if (index === lastShiftIndex && dailyOvertimeHours > 0) {
-          // Ca cuối cùng: phân bổ regular hours theo tỷ lệ và gán tất cả overtime cho ca này
-          const shiftRatio = totalHours > 0 ? shiftHours / totalHours : 0
-          shiftRegularHours = Math.min(shiftHours, dailyRegularHours * shiftRatio)
+          // Ca cuối cùng: gán tất cả overtime cho ca này và tính lương dựa trên tổng ngày
+          shiftRegularHours = shiftHours
           shiftOvertimeHours = dailyOvertimeHours // Tất cả overtime cho ca cuối
           
-          regularPay = shiftRegularHours * hourlyRate
+          regularPay = shiftHours * hourlyRate
           overtimePay = shiftOvertimeHours * overtimeHourlyRate
         } else {
           // Các ca khác: chỉ có regular pay

@@ -532,16 +532,10 @@ export function calculateTotalHours(checkIn: string, checkOut: string): number {
       console.log("[CALC] Adjusted for next day, total hours:", totalHours)
     }
 
-    // Trừ 1 giờ nghỉ trưa nếu làm việc > 6 giờ
-    if (totalHours > 6) {
-      totalHours -= 1
-      console.log("[CALC] Deducted 1 hour for lunch break")
-    }
-
-    const finalHours = Math.max(0, totalHours)
+    const finalHours = Math.round(totalHours * 100) / 100
     console.log("[CALC] Final total hours:", finalHours)
 
-    return finalHours
+    return Math.max(0, finalHours)
   } catch (error) {
     console.error("[CALC] Error calculating hours:", error)
     return 0
@@ -552,8 +546,8 @@ export function calculateSalary(totalHours: number, hourlyRate: number): number 
   console.log("[CALC] calculateSalary called with totalHours:", totalHours, "hourlyRate:", hourlyRate)
 
   try {
-    const regularHours = Math.min(totalHours, 8)
-    const overtimeHours = Math.max(0, totalHours - 8)
+    const regularHours = Math.min(totalHours, 10)
+    const overtimeHours = Math.max(0, totalHours - 10)
 
     const regularSalary = regularHours * hourlyRate
     const overtimeSalary = overtimeHours * hourlyRate * 1.5 // 150% for overtime

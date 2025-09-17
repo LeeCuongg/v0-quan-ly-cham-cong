@@ -28,13 +28,13 @@ export function calculateDailySalary(
   overtimeHourlyRate: number = 30000,
   overtimeRules: OvertimeRules = DEFAULT_OVERTIME_RULES
 ): SalaryCalculation {
-  // Tính giờ thường và ngoài giờ
+  // Tính giờ thường và ngoài giờ (dựa trên 10h/ngày)
   const regularHours = Math.min(totalHours, overtimeRules.dailyLimit);
   const overtimeHours = Math.max(0, totalHours - overtimeRules.dailyLimit);
 
-  // Tính lương
+  // Tính lương - sử dụng overtime_hourly_rate từ DB thay vì tính từ hourlyRate
   const regularPay = regularHours * hourlyRate;
-  const overtimePay = overtimeHours * overtimeHourlyRate; // Sử dụng lương cố định
+  const overtimePay = overtimeHours * overtimeHourlyRate; // Sử dụng rate cố định từ DB
 
   const totalPay = regularPay + overtimePay;
 
