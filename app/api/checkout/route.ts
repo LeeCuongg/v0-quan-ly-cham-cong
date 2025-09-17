@@ -7,30 +7,14 @@ import {
   getActiveTimesheet,
   getTodayTimesheets,
 } from "@/lib/database"
-
-// New: Tính lương với ca làm 10 tiếng
-function computeSalary10h(totalHours: number, hourlyRate: number, overtimeHourlyRate: number) {
-  const regularHours = Math.min(totalHours, 10)
-  const overtimeHours = Math.max(totalHours - 10, 0)
-  // Sửa lỗi: tính lương chính xác không làm tròn trung gian
-  const regularPay = regularHours * hourlyRate
-  const overtimePay = overtimeHours * overtimeHourlyRate
-  const totalPay = regularPay + overtimePay
-  return { 
-    regularHours: Math.round(regularHours * 100) / 100, 
-    overtimeHours: Math.round(overtimeHours * 100) / 100, 
-    regularPay: Math.round(regularPay), 
-    overtimePay: Math.round(overtimePay), 
-    totalPay: Math.round(totalPay) 
-  }
-}
+import { calculateDailySalary, calculateTotalHours as calcTotalHours } from "@/lib/salary-utils"
 
 export async function POST(request: NextRequest) {
   try {
     console.log("[API] ===== CHECKOUT REQUEST START =====")
 
     // Lấy body request
-    const body = await request.json().catch((e) => {
+    const body = await request.json().catch((e: any) => {
       console.log("[API] No JSON body or invalid JSON:", e)
       return {}
     })
@@ -116,22 +100,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Tính toán tổng thời gian làm việc
-    const totalHours = calculateTotalHours(checkInTimeStr, checkOutTime)
+    // Tính toán tổng thời gian làm việc sử dụng module trung tâm
+    const totalHours = calcTotalHours(checkInTimeStr, checkOutTime)
 
-    // Tính lương với overtime (ca 10 tiếng)
-    const salaryCalculation = computeSalary10h(
+    // Tính lương với overtime sử dụng module trung tâm
+    const salaryCalculation = calculateDailySalary(
       totalHours,
       employee.hourly_rate,
       employee.overtime_hourly_rate || 30000,
     )
 
-    console.log("[API] Salary calculation with overtime:", salaryCalculation)
+    console.log("[API] Salary calculation with standardized formula:", salaryCalculation)
 
     // Chuẩn bị dữ liệu update
     const updateData = {
       check_out_time: checkOutTime,
-      // Sửa lỗi: lưu total_hours chính xác từ salary calculation
       total_hours: salaryCalculation.regularHours + salaryCalculation.overtimeHours,
       regular_hours: salaryCalculation.regularHours,
       overtime_hours: salaryCalculation.overtimeHours,
@@ -274,19 +257,6 @@ export async function GET(request: NextRequest) {
 }
 
 function calculateTotalHours(checkIn: string, checkOut: string): number {
-  const [checkInHour, checkInMinute] = checkIn.split(":").map(Number)
-  const [checkOutHour, checkOutMinute] = checkOut.split(":").map(Number)
-
-  const checkInTime = checkInHour * 60 + checkInMinute
-  const checkOutTime = checkOutHour * 60 + checkOutMinute
-
-  let totalMinutes = checkOutTime - checkInTime
-
-  // Handle next day checkout
-  if (totalMinutes < 0) {
-    totalMinutes += 24 * 60
-  }
-
-  // Sửa lỗi: trả về giờ chính xác, không làm tròn để tính lương đúng
-  return totalMinutes / 60
+  // Sử dụng module trung tâm để tránh duplicate logic
+  return calcTotalHours(checkIn, checkOut)
 }

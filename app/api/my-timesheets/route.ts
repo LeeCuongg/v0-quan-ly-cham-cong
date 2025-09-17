@@ -111,23 +111,23 @@ export async function GET(request: NextRequest) {
           overtimePay = 0
         }
         
-        // Tính lương sử dụng salary-utils cho tổng lương
+        // Tính lương sử dụng salary-utils cho từng ca
         const salaryCalc = calculateDailySalary(shiftHours, hourlyRate, overtimeHourlyRate)
         
         processedTimesheets.push({
           ...timesheet,
-          total_hours: Math.round(shiftHours * 100) / 100,
-          hours_worked: Math.round(shiftHours * 100) / 100,
-          regular_hours: Math.round(shiftRegularHours * 100) / 100,
-          overtime_hours: Math.round(shiftOvertimeHours * 100) / 100,
+          total_hours: salaryCalc.regularHours + salaryCalc.overtimeHours,
+          hours_worked: salaryCalc.regularHours + salaryCalc.overtimeHours,
+          regular_hours: Math.round(shiftRegularHours * 1000) / 1000,
+          overtime_hours: Math.round(shiftOvertimeHours * 1000) / 1000,
           regular_pay: Math.round(regularPay),
           overtime_pay: Math.round(overtimePay),
           overtime_salary: Math.round(overtimePay),
           salary: Math.round(regularPay + overtimePay), // Tổng lương thực tế của ca này
           // Thông tin bổ sung về ngày
-          daily_total_hours: Math.round(totalHours * 100) / 100,
-          daily_regular_hours: Math.round(dailyRegularHours * 100) / 100,
-          daily_overtime_hours: Math.round(dailyOvertimeHours * 100) / 100,
+          daily_total_hours: Math.round(totalHours * 1000) / 1000,
+          daily_regular_hours: Math.round(dailyRegularHours * 1000) / 1000,
+          daily_overtime_hours: Math.round(dailyOvertimeHours * 1000) / 1000,
           shift_number: index + 1,
           total_shifts_in_day: shifts.length,
         })
@@ -143,12 +143,12 @@ export async function GET(request: NextRequest) {
     const avgHoursPerDay = totalDays > 0 ? totalHours / totalDays : 0
 
     const summary = {
-      totalHours: Math.round(totalHours * 100) / 100,
+      totalHours: Math.round(totalHours * 1000) / 1000,
       totalSalary: Math.round(totalSalary),
-      totalOvertimeHours: Math.round(totalOvertimeHours * 100) / 100,
+      totalOvertimeHours: Math.round(totalOvertimeHours * 1000) / 1000,
       totalOvertimeSalary: Math.round(totalOvertimeSalary),
       totalDays,
-      avgHoursPerDay: Math.round(avgHoursPerDay * 100) / 100,
+      avgHoursPerDay: Math.round(avgHoursPerDay * 1000) / 1000,
     }
 
     console.log("[API] Summary calculated:", summary)

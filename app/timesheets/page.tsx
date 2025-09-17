@@ -171,9 +171,9 @@ export default function TimesheetsPage() {
     const uniqueEmployees = new Set(timesheetData.map(ts => ts.employee_id)).size
 
     setStats({
-      totalHours: Math.round(totalHours * 100) / 100,
+      totalHours: Math.round(totalHours * 1000) / 1000,
       totalSalary: Math.round(totalSalary),
-      totalOvertimeHours: Math.round(totalOvertimeHours * 100) / 100,
+      totalOvertimeHours: Math.round(totalOvertimeHours * 1000) / 1000,
       totalOvertimeSalary: Math.round(totalOvertimeSalary),
       totalEntries: timesheetData.length,
       activeEmployees: uniqueEmployees,

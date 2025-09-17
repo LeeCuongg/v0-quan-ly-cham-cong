@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAllEmployees, updateTimesheet, getTimesheetById } from "@/lib/database"
+import { calculateDailySalary, calculateTotalHours, validateTimeFormat } from "@/lib/salary-utils"
 
 // Simple authentication check - you can modify this based on your auth implementation
 function isAuthorized(request: NextRequest) {
@@ -18,32 +19,10 @@ function parseHm(value?: string | null): number | null {
   return h * 60 + min
 }
 
-// Tổng giờ có xử lý qua ngày (checkout < checkin => +24h)
+// Tổng giờ có xử lý qua ngày (checkout < checkin => +24h) 
+// Sử dụng module trung tâm
 function calcTotalHours(checkIn: string, checkOut: string): number {
-  const inMin = parseHm(checkIn)
-  const outMin = parseHm(checkOut)
-  if (inMin == null || outMin == null) return 0
-  let diff = outMin - inMin
-  if (diff < 0) diff += 24 * 60
-  // Sửa lỗi: không làm tròn giờ để tính lương chính xác theo phút
-  return diff / 60
-}
-
-// New: Tính lương với ca làm 10 tiếng
-function computeSalary10h(totalHours: number, hourlyRate: number, overtimeHourlyRate: number) {
-  const regularHours = Math.min(totalHours, 10)
-  const overtimeHours = Math.max(totalHours - 10, 0)
-  // Sửa lỗi: tính lương chính xác không làm tròn trung gian
-  const regularPay = regularHours * hourlyRate
-  const overtimePay = overtimeHours * overtimeHourlyRate
-  const totalPay = regularPay + overtimePay
-  return { 
-    regularHours: Math.round(regularHours * 100) / 100, 
-    overtimeHours: Math.round(overtimeHours * 100) / 100, 
-    regularPay: Math.round(regularPay), 
-    overtimePay: Math.round(overtimePay), 
-    totalPay: Math.round(totalPay) 
-  }
+  return calculateTotalHours(checkIn, checkOut);
 }
 
 export async function PATCH(
@@ -108,7 +87,7 @@ export async function PATCH(
     console.log("[TS PATCH] Rates:", { hourlyRate, overtimeHourlyRate })
 
     // Tính toán khi đủ check_in & check_out hợp lệ
-    const canRecalculate = parseHm(newCheckIn) != null && parseHm(newCheckOut) != null
+    const canRecalculate = validateTimeFormat(newCheckIn || '') && validateTimeFormat(newCheckOut || '') && newCheckIn && newCheckOut
     console.log("[TS PATCH] Can recalculate?", canRecalculate)
 
     // Chỉ cập nhật các cột có trong bảng (theo schema ảnh)
@@ -122,9 +101,8 @@ export async function PATCH(
 
     if (canRecalculate) {
       const totalHours = calcTotalHours(newCheckIn as string, newCheckOut as string)
-      const salary = computeSalary10h(totalHours, hourlyRate, overtimeHourlyRate)
+      const salary = calculateDailySalary(totalHours, hourlyRate, overtimeHourlyRate)
 
-      // Sửa lỗi: lưu total_hours chính xác từ salary calculation
       updateData.total_hours = salary.regularHours + salary.overtimeHours
       updateData.hours_worked = updateData.total_hours
       updateData.regular_hours = salary.regularHours
@@ -133,7 +111,7 @@ export async function PATCH(
       updateData.overtime_pay = salary.overtimePay
       updateData.salary = salary.totalPay
 
-      console.log("[TS PATCH] Recalculated:", {
+      console.log("[TS PATCH] Recalculated with standardized formula:", {
         total_hours: updateData.total_hours,
         regular_hours: updateData.regular_hours,
         overtime_hours: updateData.overtime_hours,

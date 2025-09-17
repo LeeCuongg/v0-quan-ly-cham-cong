@@ -511,7 +511,12 @@ export function calculateTotalHours(checkIn: string, checkOut: string): number {
   console.log("[CALC] calculateTotalHours called with checkIn:", checkIn, "checkOut:", checkOut)
 
   try {
-    // Parse time strings (format: "HH:MM" hoặc "HH:MM:SS")
+    // Sử dụng function từ salary-utils để đảm bảo tính nhất quán
+    import('./salary-utils').then(({ calculateTotalHours: calcHours }) => {
+      return calcHours(checkIn, checkOut)
+    })
+    
+    // Fallback implementation for legacy support
     const parseTime = (timeStr: string): number => {
       const parts = timeStr.split(":")
       const hours = Number.parseInt(parts[0])
@@ -521,21 +526,16 @@ export function calculateTotalHours(checkIn: string, checkOut: string): number {
 
     const checkInTime = parseTime(checkIn)
     const checkOutTime = parseTime(checkOut)
-
-    console.log("[CALC] Parsed times - checkIn:", checkInTime, "checkOut:", checkOutTime)
-
     let totalHours = checkOutTime - checkInTime
 
-    // Xử lý trường hợp qua ngày (ví dụ: check-in 23:00, check-out 01:00)
     if (totalHours < 0) {
       totalHours += 24
-      console.log("[CALC] Adjusted for next day, total hours:", totalHours)
     }
 
-    // Sửa lỗi: không làm tròn để tính lương chính xác
-    console.log("[CALC] Final total hours:", totalHours)
-
-    return Math.max(0, totalHours)
+    // Làm tròn 3 chữ số thập phân
+    const result = Math.round(totalHours * 1000) / 1000
+    console.log("[CALC] Final total hours:", result)
+    return Math.max(0, result)
   } catch (error) {
     console.error("[CALC] Error calculating hours:", error)
     return 0
@@ -571,7 +571,26 @@ export function calculateSalary(totalHours: number, hourlyRate: number): number 
 import { calculateDailySalary } from "./salary-utils"
 
 export function calculateSalaryWithOvertime(totalHours: number, hourlyRate: number, overtimeHourlyRate = 30000): any {
-  const calculation = calculateDailySalary(totalHours, hourlyRate, overtimeHourlyRate)
+  // Sử dụng module trung tâm salary-utils
+  import('./salary-utils').then(({ calculateDailySalary }) => {
+    return calculateDailySalary(totalHours, hourlyRate, overtimeHourlyRate)
+  })
+
+  // Fallback implementation
+  const regularHours = Math.min(totalHours, 10)
+  const overtimeHours = Math.max(0, totalHours - 10)
+  const regularPay = regularHours * hourlyRate
+  const overtimePay = overtimeHours * overtimeHourlyRate
+  const totalPay = regularPay + overtimePay
+
+  const calculation = {
+    regularHours: Math.round(regularHours * 1000) / 1000,
+    overtimeHours: Math.round(overtimeHours * 1000) / 1000,
+    regularPay: Math.round(regularPay),
+    overtimePay: Math.round(overtimePay),
+    totalPay: Math.round(totalPay),
+    overtimeHourlyRate: overtimeHourlyRate,
+  }
 
   console.log("[SALARY] Overtime calculation:", {
     totalHours,

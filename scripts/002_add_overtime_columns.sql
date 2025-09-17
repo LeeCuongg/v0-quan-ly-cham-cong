@@ -1,10 +1,14 @@
 -- filepath: c:\Users\admin\Downloads\v0-quan-ly-cham-cong-main\v0-quan-ly-cham-cong-main\scripts\002_add_overtime_columns.sql
--- Add overtime columns to timesheets table
+-- Add overtime columns to timesheets table với độ chính xác 3 chữ số thập phân
 ALTER TABLE public.timesheets 
-ADD COLUMN IF NOT EXISTS regular_hours DECIMAL(5,2) DEFAULT 0,
-ADD COLUMN IF NOT EXISTS overtime_hours DECIMAL(5,2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS regular_hours DECIMAL(8,3) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS overtime_hours DECIMAL(8,3) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS regular_pay DECIMAL(10,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS overtime_pay DECIMAL(10,2) DEFAULT 0;
+
+-- Cập nhật total_hours để có độ chính xác 3 chữ số thập phân
+ALTER TABLE public.timesheets 
+ALTER COLUMN total_hours TYPE DECIMAL(8,3);
 
 -- Add overtime rate to employees table
 -- Remove old overtime_rate column if exists
