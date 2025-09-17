@@ -536,6 +536,17 @@ export default function TimesheetsPage() {
         {/* Stats (Mobile condensed) */}
         <div className="md:hidden -mx-3 px-3 mb-4">
           <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1">
+                        <Card className="min-w-[58%] snap-start">
+              <CardHeader className="py-3 pb-1">
+                <CardTitle className="text-xs font-medium flex items-center gap-2">
+                  <DollarSign className="h-3.5 w-3.5 text-primary" /> Tổng lương
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 pb-3">
+                <div className="text-xl font-bold text-primary">{(stats.totalSalary + stats.totalOvertimeSalary).toLocaleString("vi-VN")}đ</div>
+                <p className="text-[11px] text-muted-foreground">CB: {stats.totalSalary.toLocaleString("vi-VN")}đ • TC: {stats.totalOvertimeSalary.toLocaleString("vi-VN")}đ</p>
+              </CardContent>
+            </Card>
             <Card className="min-w-[58%] snap-start">
               <CardHeader className="py-3 pb-1">
                 <CardTitle className="text-xs font-medium flex items-center gap-2">
@@ -556,17 +567,6 @@ export default function TimesheetsPage() {
               <CardContent className="pt-0 pb-3">
                 <div className="text-xl font-bold">{stats.totalHours}h</div>
                 <p className="text-[11px] text-muted-foreground">Làm việc</p>
-              </CardContent>
-            </Card>
-            <Card className="min-w-[58%] snap-start">
-              <CardHeader className="py-3 pb-1">
-                <CardTitle className="text-xs font-medium flex items-center gap-2">
-                  <DollarSign className="h-3.5 w-3.5 text-primary" /> Tổng lương
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 pb-3">
-                <div className="text-xl font-bold text-primary">{(stats.totalSalary + stats.totalOvertimeSalary).toLocaleString("vi-VN")}đ</div>
-                <p className="text-[11px] text-muted-foreground">CB: {stats.totalSalary.toLocaleString("vi-VN")}đ • TC: {stats.totalOvertimeSalary.toLocaleString("vi-VN")}đ</p>
               </CardContent>
             </Card>
             <Card className="min-w-[58%] snap-start">
@@ -829,9 +829,8 @@ export default function TimesheetsPage() {
 
                         <div className="mt-1.5 flex items-center justify-between">
                           <div className="text-[14px] text-muted-foreground">
-                            CB: {(t.regular_pay || 0).toLocaleString("vi-VN")}đ{(t.overtime_pay || 0) > 0 ? ` • TC: ${(t.overtime_pay || 0).toLocaleString("vi-VN")}đ` : ""}
+                            CB: {(t.regular_pay || 0).toLocaleString("vi-VN")}đ{(t.overtime_pay || 0) > 0 ? ` • TC: ${(t.overtime_pay || 0).toLocaleString("vi-VN")}đ` : ""} • TL: {(((t.regular_pay || 0) + (t.overtime_pay || 0))).toLocaleString("vi-VN")}đ
                           </div>
-                          <div className="font-semibold text-green-600 text-[16px]">{(((t.regular_pay || 0) + (t.overtime_pay || 0))).toLocaleString("vi-VN")}đ</div>
                         </div>
 
                         <div className="mt-1.5 flex justify-end gap-1.5">
