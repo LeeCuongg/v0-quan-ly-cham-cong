@@ -61,7 +61,7 @@
 
 ## Cách sử dụng
 
-```javascript
+\`\`\`javascript
 import { calculateDailySalary, calculateTotalHours } from '@/lib/salary-utils'
 
 // Tính tổng giờ từ check-in/check-out
@@ -80,7 +80,7 @@ const salary = calculateDailySalary(
 // salary.regularPay = 233,330
 // salary.overtimePay = 15,000
 // salary.totalPay = 248,330
-```
+\`\`\`
 
 ## Tóm tắt
 
