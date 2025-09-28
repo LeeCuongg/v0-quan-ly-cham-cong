@@ -411,64 +411,6 @@ export function EmployeeDashboard() {
             </div>
 
             {/* Manager content */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" />
-                    Hoạt động gần đây
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {recentActivities.length > 0 ? (
-                      recentActivities.map((activity) => (
-                        <div key={activity.id} className="flex items-center gap-3 text-sm">
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              activity.type === "checkin" ? "bg-secondary" : "bg-accent"
-                            }`}
-                          ></div>
-                          <span className="text-muted-foreground">
-                            <span className="font-medium text-foreground">{activity.employeeName}</span>{" "}
-                            {activity.action}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Không có hoạt động nào hôm nay</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Thông báo</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {dashboardStats?.currentlyWorking && dashboardStats.currentlyWorking > 0 ? (
-                      <div className="p-3 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">
-                          Có {dashboardStats.currentlyWorking} nhân viên đang làm việc
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Hiện tại không có nhân viên nào đang làm việc</p>
-                      </div>
-                    )}
-                    <div className="p-3 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        Tổng giờ làm việc hôm nay: {dashboardStats?.totalHoursToday?.toFixed(1) || "0.0"} giờ
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
             {/* Calendar + Filters for manager */}
             <Card>
               <CardHeader className="flex items-center justify-between">

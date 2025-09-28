@@ -8,7 +8,6 @@ export default function DashboardPage() {
     <ProtectedPage allowedRoles={["manager", "employee"]}>
       <main className="p-4 lg:p-8">
         <ErrorBoundary>
-          <DashboardStats />
           <EmployeeDashboard />
         </ErrorBoundary>
       </main>
