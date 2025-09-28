@@ -70,6 +70,13 @@ export function EmployeeDashboard() {
     weekOvertimePay: 0,
   })
 
+  // Manager calendar / filters
+  const [employeesList, setEmployeesList] = useState<any[]>([])
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("all")
+  const [viewMode, setViewMode] = useState<"month" | "week">("month") // default month
+  const [currentDate, setCurrentDate] = useState<Date>(new Date())
+  const [timesheetByDate, setTimesheetByDate] = useState<Record<string, any[]>>({})
+
   useEffect(() => {
     if (isEmployee && user) {
       fetchEmployeeData()
@@ -161,12 +168,126 @@ export function EmployeeDashboard() {
         activities.sort((a, b) => b.time.localeCompare(a.time))
         setRecentActivities(activities.slice(0, 5))
       }
+      // fetch employees for filter
+      try {
+        const empRes = await fetch('/api/employees')
+        if (empRes.ok) {
+          const empData = await empRes.json()
+          setEmployeesList(empData)
+        }
+      } catch (e) {
+        console.error('Failed to fetch employees for manager calendar', e)
+      }
     } catch (error) {
       console.error("Error fetching manager data:", error)
     } finally {
       setLoading(false)
     }
   }
+
+  // Helpers for calendar
+  const toYMD = (d: Date) => d.toISOString().split('T')[0]
+
+  const getRangeForView = (date: Date) => {
+    if (viewMode === 'week') {
+      // find Monday
+      const day = date.getDay() // 0 Sun .. 6 Sat
+      const diffToMon = (day + 6) % 7 // days to subtract to get Monday
+      const mon = new Date(date)
+      mon.setDate(date.getDate() - diffToMon)
+      const start = new Date(mon)
+      const end = new Date(mon)
+      end.setDate(mon.getDate() + 6)
+      return { start: toYMD(start), end: toYMD(end) }
+    }
+    // month
+    const start = new Date(date.getFullYear(), date.getMonth(), 1)
+    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+    return { start: toYMD(start), end: toYMD(end) }
+  }
+
+  const fetchCalendarTimesheets = async () => {
+    try {
+      const { start, end } = getRangeForView(currentDate)
+      const params = new URLSearchParams({ startDate: start, endDate: end })
+      if (selectedEmployee && selectedEmployee !== 'all') params.set('employeeId', selectedEmployee)
+      const res = await fetch(`/api/timesheets?${params.toString()}`)
+      if (!res.ok) return
+      const data = await res.json()
+      // group by date (yyyy-mm-dd)
+      const map: Record<string, any[]> = {}
+      data.forEach((ts: any) => {
+        const d = (ts.date || ts.check_in?.split('T')?.[0] || ts.check_in_time?.split('T')?.[0] || toYMD(new Date()))
+        if (!map[d]) map[d] = []
+        map[d].push(ts)
+      })
+      setTimesheetByDate(map)
+    } catch (e) {
+      console.error('Error fetching calendar timesheets', e)
+    }
+  }
+
+  useEffect(() => {
+    if (isManager && user) {
+      fetchCalendarTimesheets()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEmployee, viewMode, currentDate, isManager, user])
+
+  // Build calendar cells for rendering
+  const buildCalendarCells = () => {
+    const cells: Date[] = []
+    if (viewMode === 'week') {
+      // start from Monday
+      const day = currentDate.getDay()
+      const diffToMon = (day + 6) % 7
+      const mon = new Date(currentDate)
+      mon.setDate(currentDate.getDate() - diffToMon)
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(mon)
+        d.setDate(mon.getDate() + i)
+        cells.push(d)
+      }
+      return cells
+    }
+
+    // month view: show 6 weeks (42 cells) starting from Monday of the first week
+    const firstOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+    const startDay = firstOfMonth.getDay()
+    const diffToMon = (startDay + 6) % 7
+    const start = new Date(firstOfMonth)
+    start.setDate(firstOfMonth.getDate() - diffToMon)
+
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      cells.push(d)
+    }
+    return cells
+  }
+
+  const prev = () => {
+    const d = new Date(currentDate)
+    if (viewMode === 'week') {
+      d.setDate(d.getDate() - 7)
+    } else {
+      d.setMonth(d.getMonth() - 1)
+    }
+    setCurrentDate(d)
+  }
+
+  const next = () => {
+    const d = new Date(currentDate)
+    if (viewMode === 'week') {
+      d.setDate(d.getDate() + 7)
+    } else {
+      d.setMonth(d.getMonth() + 1)
+    }
+    setCurrentDate(d)
+  }
+
+  const formatCurrency = (n: number) => n.toLocaleString('vi-VN') + 'đ'
+
 
   const fetchOvertimeInfo = async () => {
     try {
@@ -347,6 +468,84 @@ export function EmployeeDashboard() {
                 </CardContent>
               </Card>
             </div>
+            
+            {/* Calendar + Filters for manager */}
+            <Card>
+              <CardHeader className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  <CardTitle>Lịch chấm công</CardTitle>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedEmployee}
+                    onChange={(e: any) => setSelectedEmployee(e.target.value)}
+                    className="border rounded px-2 py-1 text-sm"
+                  >
+                    <option value="all">Tất cả nhân viên</option>
+                    {employeesList.map((emp: any) => (
+                      <option key={emp.id} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
+
+                  <div className="flex items-center rounded bg-muted p-0.5">
+                    <button
+                      onClick={() => setViewMode('month')}
+                      className={`px-2 py-1 text-sm ${viewMode === 'month' ? 'bg-white rounded' : ''}`}
+                    >
+                      Tháng
+                    </button>
+                    <button
+                      onClick={() => setViewMode('week')}
+                      className={`px-2 py-1 text-sm ${viewMode === 'week' ? 'bg-white rounded' : ''}`}
+                    >
+                      Tuần
+                    </button>
+                  </div>
+
+                  <Button variant="outline" onClick={prev}>Prev</Button>
+                  <Button variant="outline" onClick={next}>Next</Button>
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                <div className="grid grid-cols-7 gap-1 text-xs">
+                  {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map((d) => (
+                    <div key={d} className="text-center font-medium py-1">{d}</div>
+                  ))}
+
+                  {buildCalendarCells().map((d) => {
+                    const ymd = toYMD(d)
+                    const entries = timesheetByDate[ymd] || []
+                    const isCurrentMonth = d.getMonth() === currentDate.getMonth()
+                    const reg = entries.reduce((s, e) => s + (Number(e.regular_pay || e.salary || 0) || 0), 0)
+                    const ot = entries.reduce((s, e) => s + (Number(e.overtime_pay || e.overtime_salary || 0) || 0), 0)
+                    const total = reg + ot
+
+                    return (
+                      <div key={ymd} className={`min-h-[72px] border rounded p-2 ${isCurrentMonth ? '' : 'bg-muted/50 text-muted-foreground'}`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium">{d.getDate()}</span>
+                          <span className="text-[10px] text-muted-foreground">{ymd}</span>
+                        </div>
+
+                        {entries.length === 0 ? (
+                          <div className="text-sm text-center text-muted-foreground">Nghỉ</div>
+                        ) : (
+                          <div className="text-[12px] space-y-1">
+                            <div>Ca: <span className="font-medium">{entries.length}</span></div>
+                            <div>LCB: <span className="font-medium">{formatCurrency(reg)}</span></div>
+                            <div>OT: <span className="font-medium">{formatCurrency(ot)}</span></div>
+                            <div>Tổng: <span className="font-medium">{formatCurrency(total)}</span></div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
