@@ -129,19 +129,23 @@ export function EmployeeDashboard() {
   const fetchManagerData = async () => {
     try {
       // Fetch dashboard stats
-      const statsResponse = await fetch("/api/dashboard/stats")
+      const params = new URLSearchParams()
+      if (selectedEmployee && selectedEmployee !== 'all') params.set('employeeId', selectedEmployee)
+      const statsResponse = await fetch(`/api/dashboard/stats?${params.toString()}`)
       if (statsResponse.ok) {
         const statsData = await statsResponse.json()
         setDashboardStats(statsData)
       }
 
       // Fetch recent activities from timesheets
-      const today = new Date().toISOString().split("T")[0]
-      const timesheetsResponse = await fetch(`/api/timesheets?startDate=${today}&endDate=${today}`)
+  const today = new Date().toISOString().split("T")[0]
+  const tsParams = new URLSearchParams({ startDate: today, endDate: today })
+  if (selectedEmployee && selectedEmployee !== 'all') tsParams.set('employeeId', selectedEmployee)
+  const timesheetsResponse = await fetch(`/api/timesheets?${tsParams.toString()}`)
       if (timesheetsResponse.ok) {
         const timesheetsData = await timesheetsResponse.json()
 
-        // Transform timesheets to recent activities
+  // Transform timesheets to recent activities
         const activities: RecentActivity[] = []
         timesheetsData.forEach((timesheet: any) => {
           if (timesheet.check_in_time) {
@@ -234,6 +238,14 @@ export function EmployeeDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEmployee, viewMode, currentDate, isManager, user])
 
+  // When selectedEmployee changes, also refetch manager-level stats and recent activities
+  useEffect(() => {
+    if (isManager && user) {
+      fetchManagerData()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEmployee])
+
   // Build calendar cells for rendering
   const buildCalendarCells = () => {
     const cells: Date[] = []
@@ -302,13 +314,25 @@ export function EmployeeDashboard() {
   }
 
   const formatTime = (timeString: string) => {
-    if (timeString.includes("T")) {
-      return new Date(timeString).toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+    // Return zero-padded HH:MM (e.g., 08:00) for calendar display
+    try {
+      if (!timeString) return '--:--'
+      if (timeString.includes("T")) {
+        const dt = new Date(timeString)
+        const h = dt.getHours().toString().padStart(2, '0')
+        const m = dt.getMinutes().toString().padStart(2, '0')
+        return `${h}:${m}`
+      }
+      const parts = timeString.split(":")
+      if (parts.length >= 2) {
+        const h = parts[0].padStart(2, '0')
+        const m = parts[1].padStart(2, '0')
+        return `${h}:${m}`
+      }
+      return timeString.slice(0, 5)
+    } catch (e) {
+      return timeString.slice(0, 5)
     }
-    return timeString.slice(0, 5)
   }
 
   const getStatusBadge = () => {
@@ -473,10 +497,32 @@ export function EmployeeDashboard() {
                         </div>
 
                         {entries.length === 0 ? (
-                          <div className="text-sm text-center text-muted-foreground">Nghỉ</div>
+                          <div className="text-sm text-center text-red-600 font-semibold">Nghỉ</div>
                         ) : (
                           <div className="text-[12px] space-y-1">
-                            <div>Ca: <span className="font-medium">{entries.length}</span></div>
+                            <div className="font-medium">Ca: {entries.length}</div>
+                            <div className="flex flex-col gap-1">
+                              {entries.map((e: any, idx: number) => {
+                                // Determine start/end times
+                                const start = e.check_in_time || (e.check_in && e.check_in.split('T')?.[1]) || e.start_time || ''
+                                const end = e.check_out_time || (e.check_out && e.check_out.split('T')?.[1]) || e.end_time || ''
+                                const startFmt = start ? formatTime(start) : '--:--'
+                                const endFmt = end ? formatTime(end) : '--:--'
+                                return (
+                                  <div key={e.id || idx} className="flex items-center justify-between">
+                                    <div className="text-[13px]">
+                                      Ca {e.shift_number || idx + 1}: <span className="font-medium">{startFmt} - {endFmt}</span>
+                                    </div>
+                                    <div className="text-[12px] text-muted-foreground">
+                                      {/* small badges */}
+                                      {Number(e.overtime_hours || e.overtimeHours || 0) > 0 && (
+                                        <Badge className="bg-orange-100 text-orange-700">OT</Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
                             <div>LCB: <span className="font-medium">{formatCurrency(reg)}</span></div>
                             <div>OT: <span className="font-medium">{formatCurrency(ot)}</span></div>
                             <div>Tổng: <span className="font-medium">{formatCurrency(total)}</span></div>
