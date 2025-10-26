@@ -14,10 +14,16 @@ export interface SessionPayload {
 }
 
 export async function encrypt(payload: SessionPayload) {
+  // Set token expiration to ~10 years.
+  // jose's setExpirationTime can accept a numeric epoch (in seconds). We compute
+  // current epoch + seconds for 10 years to set a long-lived JWT.
+  const tenYearsInSeconds = 10 * 365 * 24 * 60 * 60 // 315360000
+  const exp = Math.floor(Date.now() / 1000) + tenYearsInSeconds
+
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("24h")
+    .setExpirationTime(exp)
     .sign(key)
 }
 
